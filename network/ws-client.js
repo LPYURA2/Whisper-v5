@@ -79,21 +79,21 @@ export class WSClient {
         );
     },
 
-handleMessage(data) {
+    handleMessage(data) {
 
-    switch (data.type) {
+        switch (data.type) {
 
-        case "welcome":
+            case "welcome":
 
-            console.log("[WS] server welcome");
+                console.log("[WS] server welcome");
 
-            break;
+                break;
 
-        case "peers":
+            case "peers":
 
-            PeerManager.updatePeers(
-                data.peers
-            );
+                PeerManager.updatePeers(
+                    data.peers
+                );
 
             for (const peerId of data.peers) {
 
