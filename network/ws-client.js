@@ -28,7 +28,7 @@ export class WSClient {
             }));
 
             this.send({
-                type: "hello",
+                type: "join",
                 peerId: crypto.randomUUID()
             });
         });
