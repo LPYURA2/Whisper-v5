@@ -16,4 +16,4 @@ export const Signaling = {
 
 };
 
-window.Signaling = Signaling:
+window.Signaling = Signaling;
