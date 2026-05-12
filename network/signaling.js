@@ -15,3 +15,5 @@ export const Signaling = {
     }
 
 };
+
+window.Signaling = Signaling:
