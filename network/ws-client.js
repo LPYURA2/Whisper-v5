@@ -1,3 +1,5 @@
+import { PeerManager } from '../peers/peer-manager.js';
+
 const SIGNAL_SERVER = "wss://whisper-signaling.onrender.com";
 
 export class WSClient {
@@ -87,12 +89,14 @@ export class WSClient {
 
         case "peers":
 
-            this.peers = data.peers.filter(
-                peer => peer !== this.peerId
+            PeerManager.updatePeers(
+                data.peers
             );
 
-            console.log("[WS] peers", this.peers);
-
+            console.log(
+                 "[WS] peers",
+                PeerManager.getPeers()
+                );
             break;
 
         case "message":
