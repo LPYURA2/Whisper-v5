@@ -17,6 +17,11 @@ export class WSClient {
 
             console.log("[WS] connected");
 
+            this.socket.send(JSON.stringify({
+                type: "ping",
+                text: "hello from client"
+            }));
+
             this.send({
                 type: "hello",
                 peerId: crypto.randomUUID()
