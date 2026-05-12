@@ -74,6 +74,11 @@ export class WSClient {
             return;
         }
 
+        this.socket.send(
+            JSON.stringify(data)
+        );
+    }
+
 handleMessage(data) {
 
     switch (data.type) {
