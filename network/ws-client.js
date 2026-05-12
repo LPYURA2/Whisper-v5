@@ -1,75 +1,118 @@
 import { PeerManager } from '../peers/peer-manager.js';
+import { ProfileManager } from '../profile/profile-manager.js';
+import { RTCManager } from './rtc-manager.js';
 
-const SIGNAL_SERVER = "wss://whisper-signaling.onrender.com";
+const SIGNAL_SERVER =
+    "wss://whisper-signaling.onrender.com";
 
 export class WSClient {
+
     constructor() {
+
         this.url = null;
+
         this.socket = null;
+
         this.connected = false;
-        this.peerId = crypto.randomUUID();
+
+        this.peerId =
+            crypto.randomUUID();
 
         this.peers = [];
+
+        this.reconnectDelay = 3000;
     }
 
     connect() {
+
         console.log("[WS] connecting...");
 
-        this.socket = new WebSocket(SIGNAL_SERVER);
+        this.socket =
+            new WebSocket(SIGNAL_SERVER);
 
-        this.socket.addEventListener("open", () => {
-            this.connected = true;
+        this.socket.addEventListener(
+            "open",
+            () => {
 
-            console.log("[WS] connected");
+                this.connected = true;
 
-            console.log("[WS] state",
-            this.socket.readyState);
+                console.log("[WS] connected");
 
-            this.socket.send("test");
+                console.log(
+                    "[WS] state",
+                    this.socket.readyState
+                );
 
-            this.socket.send(JSON.stringify({
-                type: "ping",
-                text: "hello from client"
-            }));
-
-            this.send({
-                type: "join",
-                peerId: this.peerId
-            });
-        });
-
-        this.socket.addEventListener("message", (event) => {
-            
-                console.log("[RAW MESSAGE]", event.data);
-            
-            try {
-                const data = JSON.parse(event.data);
-
-                console.log("[WS] message", data);
-
-                this.handleMessage(data);
-
-            } catch (err) {
-                console.error("[WS] invalid message", err);
+                this.send({
+                    type: "join",
+                    peerId: this.peerId
+                });
             }
-        });
+        );
 
-        this.socket.addEventListener("close", () => {
-            this.connected = false;
+        this.socket.addEventListener(
+            "message",
+            (event) => {
 
-            console.warn("[WS] disconnected");
+                console.log(
+                    "[RAW MESSAGE]",
+                    event.data
+                );
 
-            setTimeout(() => {
-                this.connect();
-            }, this.reconnectDelay);
-        });
+                try {
 
-        this.socket.addEventListener("error", (err) => {
-            console.error("[WS] error", err);
-        });
+                    const data =
+                        JSON.parse(event.data);
+
+                    console.log(
+                        "[WS] message",
+                        data
+                    );
+
+                    this.handleMessage(data);
+
+                } catch (err) {
+
+                    console.error(
+                        "[WS] invalid message",
+                        err
+                    );
+                }
+            }
+        );
+
+        this.socket.addEventListener(
+            "close",
+            () => {
+
+                this.connected = false;
+
+                console.warn(
+                    "[WS] disconnected"
+                );
+
+                setTimeout(() => {
+
+                    this.connect();
+
+                }, this.reconnectDelay);
+            }
+        );
+
+        this.socket.addEventListener(
+            "error",
+            (err) => {
+
+                console.error(
+                    "[WS] error",
+                    err
+                );
+            }
+        );
     }
 
     send(data) {
+
         if (!this.connected) {
             return;
         }
@@ -77,7 +120,7 @@ export class WSClient {
         this.socket.send(
             JSON.stringify(data)
         );
-    },
+    }
 
     handleMessage(data) {
 
@@ -85,7 +128,9 @@ export class WSClient {
 
             case "welcome":
 
-                console.log("[WS] server welcome");
+                console.log(
+                    "[WS] server welcome"
+                );
 
                 break;
 
@@ -95,85 +140,102 @@ export class WSClient {
                     data.peers
                 );
 
-            for (const peerId of data.peers) {
+                this.peers = data.peers;
 
-                const myId =
-                    ProfileManager
-                        .getProfile()
-                        .id;
+                for (
+                    const peerId
+                    of data.peers
+                ) {
 
-                if (peerId === myId) {
-                    continue;
+                    const myId =
+                        ProfileManager
+                            .getProfile()
+                            .id;
+
+                    if (peerId === myId) {
+                        continue;
+                    }
+
+                    const existingConnection =
+                        RTCManager.getConnection(
+                            peerId
+                        );
+
+                    if (existingConnection) {
+                        continue;
+                    }
+
+                    RTCManager
+                        .createPeerConnection(
+                            peerId
+                        );
                 }
 
-                const existingConnection =
-                    RTCManager.getConnection(
-                        peerId
-                    );
+                console.log(
+                    "[WS] peers",
+                    PeerManager.getPeers()
+                );
 
-                if (existingConnection) {
-                    continue;
-                }
+                break;
 
-                RTCManager
-                    .createPeerConnection(
-                        peerId
-                    );
-            }
+            case "message":
 
-            console.log(
-                "[WS] peers",
-                PeerManager.getPeers()
-            );
+                console.log(
+                    "[MESSAGE]",
+                    data.from,
+                    ":",
+                    data.text
+                );
 
-            break;
+                window.dispatchEvent(
+                    new CustomEvent(
+                        "ws-message",
+                        {
+                            detail: data
+                        }
+                    )
+                );
 
-        case "message":
+                break;
 
-            console.log(
-                "[MESSAGE]",
-                data.from,
-                ":",
-                data.text
-            );
+            default:
 
-            window.dispatchEvent(
-                new CustomEvent("ws-message", {
-                    detail: data
-                })
-            );
-
-            break;
-
-        default:
-
-            console.log("[WS] unknown message", data);
-
+                console.log(
+                    "[WS] unknown message",
+                    data
+                );
+        }
     }
 
-}
+    sendMessage(text) {
 
-sendMessage(text) {
+        if (
+            !this.peers ||
+            this.peers.length === 0
+        ) {
 
-    if (!this.peers || this.peers.length === 0) {
+            console.log(
+                "[WS] no peers"
+            );
 
-        console.log("[WS] no peers");
+            return;
+        }
 
-        return;
+        const targetPeer =
+            this.peers[0];
+
+        this.send({
+            type: "message",
+            to: targetPeer,
+            from: this.peerId,
+            text
+        });
+
+        console.log(
+            "[WS] sent message:",
+            text
+        );
     }
-
-    const targetPeer = this.peers[0];
-
-    this.send({
-        type: "message",
-        to: targetPeer,
-        from: this.peerId,
-        text
-    });
-
-    console.log("[WS] sent message:", text);
-}
-
 }
 
 window.WSClient = WSClient;
