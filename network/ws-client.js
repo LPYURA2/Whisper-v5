@@ -79,7 +79,7 @@ export class WSClient {
                 console.log("[WS] server welcome");
                 break;
 
-            case "peer-list":
+            case "peers":
                 console.log("[WS] peers", data.peers);
                 break;
 
