@@ -2,6 +2,7 @@ import { UI } from '../ui/ui.js';
 import { UILayout } from '../ui/layout.js';
 import { Storage } from '../storage/storage.js';
 import { Signaling } from '../network/signaling.js';
+import { ProfileManager } from '../profile/profile-manager.js';
 import { registerSW } from './sw-register.js';
 
 async function bootstrap() {
@@ -13,6 +14,8 @@ async function bootstrap() {
   UILayout.init();
 
   await registerSW();
+
+  await ProfileManager.init();
 
   await Signaling.init();
 
