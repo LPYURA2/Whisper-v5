@@ -74,10 +74,7 @@ export class WSClient {
             return;
         }
 
-        this.socket.send(JSON.stringify(data));
-    }
-
-   handleMessage(data) {
+handleMessage(data) {
 
     switch (data.type) {
 
@@ -93,10 +90,37 @@ export class WSClient {
                 data.peers
             );
 
+            for (const peerId of data.peers) {
+
+                const myId =
+                    ProfileManager
+                        .getProfile()
+                        .id;
+
+                if (peerId === myId) {
+                    continue;
+                }
+
+                const existingConnection =
+                    RTCManager.getConnection(
+                        peerId
+                    );
+
+                if (existingConnection) {
+                    continue;
+                }
+
+                RTCManager
+                    .createPeerConnection(
+                        peerId
+                    );
+            }
+
             console.log(
-                 "[WS] peers",
+                "[WS] peers",
                 PeerManager.getPeers()
-                );
+            );
+
             break;
 
         case "message":
