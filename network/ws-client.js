@@ -34,6 +34,9 @@ export class WSClient {
         });
 
         this.socket.addEventListener("message", (event) => {
+            
+                console.log("[RAW MESSAGE]", event.data);
+            
             try {
                 const data = JSON.parse(event.data);
 
