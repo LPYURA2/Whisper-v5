@@ -1,5 +1,17 @@
+import { WSClient } from './ws-client.js';
+
 export const Signaling = {
-  async init() {
-    console.log('[Signaling] initialized');
-  }
+
+    wsClient: null,
+
+    async init() {
+
+        console.log('[Signaling] initialized');
+
+        this.wsClient = new WSClient();
+
+        this.wsClient.connect();
+
+    }
+
 };
