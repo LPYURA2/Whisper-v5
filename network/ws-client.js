@@ -1,6 +1,6 @@
 const SIGNAL_SERVER = "wss://whisper-signaling.onrender.com";
 
-export WSClient {
+export class WSClient {
     constructor() {
         this.socket = null;
         this.connected = false;
