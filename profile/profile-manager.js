@@ -68,8 +68,18 @@ export const ProfileManager = {
     getProfile() {
 
         return this.profile;
-    }
+    },
 
+    async setUsername(username){
+        this.profile.username = username;
+
+        await this.saveProfile();
+
+        console.log(
+            "[Profile] username updated",
+            username
+        );
+    }
 };
 
 window.ProfileManager = ProfileManager;
