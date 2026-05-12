@@ -19,7 +19,7 @@ export class WSClient {
 
             this.send({
                 type: "hello",
-                timestamp: Date.now()
+                peerId: crypto.randomUUID()
             });
         });
 
