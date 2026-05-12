@@ -17,6 +17,11 @@ export class WSClient {
 
             console.log("[WS] connected");
 
+            console.log("[WS] state",
+            this.socket.readyState);
+
+            this.socket.send("test");
+
             this.socket.send(JSON.stringify({
                 type: "ping",
                 text: "hello from client"
