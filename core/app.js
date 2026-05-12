@@ -3,6 +3,7 @@ import { UILayout } from '../ui/layout.js';
 import { Storage } from '../storage/storage.js';
 import { ProfileManager } from '../profile/profile-manager.js';
 import { KeyManager } from '../crypto/key-manager.js';
+import { PeerManager } from '../peers/peer-manager.js';
 import { Signaling } from '../network/signaling.js';
 import { registerSW } from './sw-register.js';
 
@@ -20,6 +21,8 @@ async function bootstrap() {
     await ProfileManager.init();
 
     await KeyManager.init();
+
+    PeerManager.init();
 
     await Signaling.init();
 
