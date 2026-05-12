@@ -2,10 +2,9 @@ const SIGNAL_SERVER = "wss://whisper-signaling.onrender.com";
 
 export class WSClient {
     constructor() {
+        this.url = null;
         this.socket = null;
         this.connected = false;
-        this.reconnectDelay = 3000;
-
         this.peerId = crypto.randomUUID();
 
         this.peers = [];
@@ -103,6 +102,12 @@ export class WSClient {
                 data.from,
                 ":",
                 data.text
+            );
+
+            window.dispatchEvent(
+                new CustomEvent("ws-message", {
+                    detail: data
+                })
             );
 
             break;
