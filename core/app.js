@@ -21,4 +21,11 @@ async function bootstrap() {
 
 bootstrap().catch((err) => {
   console.error('[Bootstrap] Fatal Error', err);
+
+window.addEventListener("ws-message", (event) => {
+
+    console.log(
+        "[APP MESSAGE]",
+        event.detail
+    );
 });
