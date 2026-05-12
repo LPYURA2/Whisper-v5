@@ -5,6 +5,10 @@ export class WSClient {
         this.socket = null;
         this.connected = false;
         this.reconnectDelay = 3000;
+
+        this.peerId = crypto.randomUUID();
+
+        this.peers = [];
     }
 
     connect() {
@@ -29,7 +33,7 @@ export class WSClient {
 
             this.send({
                 type: "join",
-                peerId: crypto.randomUUID()
+                peerId: this.peerId
             });
         });
 
@@ -72,21 +76,66 @@ export class WSClient {
         this.socket.send(JSON.stringify(data));
     }
 
-    handleMessage(data) {
-        switch (data.type) {
+   handleMessage(data) {
 
-            case "welcome":
-                console.log("[WS] server welcome");
-                break;
+    switch (data.type) {
 
-            case "peers":
-                console.log("[WS] peers", data.peers);
-                break;
+        case "welcome":
 
-            default:
-                console.log("[WS] unknown message", data);
-        }
+            console.log("[WS] server welcome");
+
+            break;
+
+        case "peers":
+
+            this.peers = data.peers.filter(
+                peer => peer !== this.peerId
+            );
+
+            console.log("[WS] peers", this.peers);
+
+            break;
+
+        case "message":
+
+            console.log(
+                "[MESSAGE]",
+                data.from,
+                ":",
+                data.text
+            );
+
+            break;
+
+        default:
+
+            console.log("[WS] unknown message", data);
+
     }
+
+}
+
+sendMessage(text) {
+
+    if (!this.peers || this.peers.length === 0) {
+
+        console.log("[WS] no peers");
+
+        return;
+    }
+
+    const targetPeer = this.peers[0];
+
+    this.send({
+        type: "message",
+        to: targetPeer,
+        from: this.peerId,
+        text
+    });
+
+    console.log("[WS] sent message:", text);
+}
+
 }
 
 window.WSClient = WSClient;
