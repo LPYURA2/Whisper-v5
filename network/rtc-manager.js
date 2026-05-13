@@ -84,7 +84,7 @@ export const RTCManager = {
     );
 
     return connection;
-}
+},
 
     getConnection(peerId) {
 
