@@ -89,7 +89,41 @@ export const RTCManager = {
     getConnection(peerId) {
 
         return this.peers.get(peerId);
+    },
+
+    async createOffer(peerId) {
+
+    const connection =
+        this.getConnection(peerId);
+
+    if (!connection) {
+
+        console.error(
+            "[RTC] no connection",
+            peerId
+        );
+
+        return null;
     }
+
+    console.log(
+        "[RTC] creating offer",
+        peerId
+    );
+
+    const offer =
+        await connection.createOffer();
+
+    await connection.setLocalDescription(
+        offer
+    );
+
+    console.log(
+        "[RTC] local description set"
+    );
+
+    return offer;
+    },
 
 };
 
