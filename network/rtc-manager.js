@@ -132,6 +132,74 @@ export const RTCManager = {
     return offer;
     },
 
+    async setRemoteDescription(
+    peerId,
+    sdp
+) {
+
+    const connection =
+        this.getConnection(peerId);
+
+    if (!connection) {
+
+        console.error(
+            "[RTC] no connection",
+            peerId
+        );
+
+        return;
+    }
+
+    await connection.setRemoteDescription(
+        new RTCSessionDescription(sdp)
+    );
+
+    console.log(
+        "[RTC] remote description set"
+    );
+},
+
+async createAnswer(peerId) {
+
+    const connection =
+        this.getConnection(peerId);
+
+    if (!connection) {
+
+        console.error(
+            "[RTC] no connection",
+            peerId
+        );
+
+        return null;
+    }
+
+    console.log(
+        "[RTC] creating answer",
+        peerId
+    );
+
+    const answer =
+        await connection.createAnswer();
+
+    await connection.setLocalDescription(
+        answer
+    );
+
+    console.log(
+        "[RTC] answer local description set"
+    );
+
+    console.log(
+        "[RTC] ANSWER SDP",
+        JSON.stringify(
+            connection.localDescription
+        )
+    );
+
+    return answer;
+}
+
 };
 
 window.RTCManager = RTCManager;
