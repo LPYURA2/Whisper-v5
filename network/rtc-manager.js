@@ -122,6 +122,13 @@ export const RTCManager = {
         "[RTC] local description set"
     );
 
+    console.log(
+        "[RTC] OFFER SDP",
+        JSON.stringify(
+            connection.localDescription
+        )
+    );
+
     return offer;
     },
 
