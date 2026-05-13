@@ -9,34 +9,82 @@ export const RTCManager = {
 
     createPeerConnection(peerId) {
 
-        console.log(
-            "[RTCManager] creating connection",
-            peerId
+    console.log(
+        "[RTCManager] creating connection",
+        peerId
+    );
+
+    const connection =
+        new RTCPeerConnection({
+
+            iceServers: [
+                {
+                    urls:
+                    "stun:stun.l.google.com:19302"
+                }
+            ]
+        });
+
+    const channel =
+        connection.createDataChannel(
+            "chat"
         );
 
-        const connection =
-            new RTCPeerConnection({
+    channel.onopen = () => {
 
-                iceServers: [
-                    {
-                        urls:
-                        "stun:stun.l.google.com:19302"
-                    }
-                ]
-            });
+        console.log(
+            "[RTC] data channel open",
+            peerId
+        );
+    };
 
-        this.peers.set(
+    channel.onmessage = (event) => {
+
+        console.log(
+            "[RTC] message",
             peerId,
-            connection
+            event.data
         );
+    };
 
-        console.log(
-            "[RTCManager] connection created",
-            peerId
-        );
+    connection.ondatachannel =
+        (event) => {
 
-        return connection;
-    },
+            const incomingChannel =
+                event.channel;
+
+            incomingChannel.onopen =
+                () => {
+
+                    console.log(
+                        "[RTC] incoming channel open",
+                        peerId
+                    );
+                };
+
+            incomingChannel.onmessage =
+                (msgEvent) => {
+
+                    console.log(
+                        "[RTC] incoming message",
+                        peerId,
+                        msgEvent.data
+                    );
+                };
+        };
+
+    this.peers.set(
+        peerId,
+        connection
+    );
+
+    console.log(
+        "[RTCManager] connection created",
+        peerId
+    );
+
+    return connection;
+}
 
     getConnection(peerId) {
 
