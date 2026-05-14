@@ -25,6 +25,25 @@ export const RTCManager = {
             ]
         });
 
+    connection.onicecandidate =
+    (event) => {
+
+        if (event.candidate) {
+
+            console.log(
+                "[RTC] ICE candidate",
+                JSON.stringify(
+                    event.candidate)
+            );
+
+        } else {
+
+            console.log(
+                "[RTC] ICE gathering complete"
+            );
+        }
+    };
+
     const channel =
         connection.createDataChannel(
             "chat"
