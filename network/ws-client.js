@@ -198,6 +198,47 @@ export class WSClient {
 
                 break;
 
+            case "offer":
+
+                console.log(
+                    "[WS] OFFER received"
+                );
+                
+                RTCManager.handleOffer(
+                    data.from,
+                    data.offer
+                );
+
+                break;
+
+            case "answer":
+
+                console.log(
+                    "[WS] ANSWER received"
+                );
+
+            
+
+                RTCManager.handleAnswer(
+                    data.from,
+                    data.answer
+                );
+
+                break;
+
+            case "ice-candidate":
+
+                console.log(
+                    "[WS] ICE candidate received"
+                );
+
+                RTCManager.handleCandidate(
+                    data.from,
+                    data.candidate
+                );
+
+                break;
+
             default:
 
                 console.log(
