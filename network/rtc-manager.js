@@ -118,151 +118,221 @@ export const RTCManager = {
         return this.peers.get(peerId);
     },
 
-    async createOffer(peerId) {
+   async createOffer(peerId) {
 
-    const connection =
-        this.getConnection(peerId);
+        const connection =
+            this.getConnection(peerId);
 
-    if (!connection) {
+        if (!connection) {
 
-        console.error(
-            "[RTC] no connection",
+            console.error(
+                "[RTC] no connection",
+                peerId
+            );
+
+            return null;
+        }
+
+        console.log(
+            "[RTC] creating offer",
             peerId
         );
 
-        return null;
-    }
+        const offer =
+            await connection.createOffer();
 
-    console.log(
-        "[RTC] creating offer",
-        peerId
-    );
+        await connection.setLocalDescription(
+            offer
+        );
 
-    const offer =
-        await connection.createOffer();
+        console.log(
+            "[RTC] local description set"
+        );
 
-    await connection.setLocalDescription(
-        offer
-    );
+        WSClient.send({
+            type: "offer",
+            target: peerId,
+            offer:
+                connection.localDescription
+        });
 
-    console.log(
-        "[RTC] local description set"
-    );
+        console.log(
+            "[RTC] offer sent"
+        );
 
-    console.log(
-        "[RTC] OFFER SDP",
-        JSON.stringify(
-            connection.localDescription
-        )
-    );
-
-    window.latestOffer =
-    JSON.stringify(
-        connection.localDescription
-    );
-
-    return offer;
+        return offer;
     },
 
     async setRemoteDescription(
-    peerId,
-    sdp
-) {
+        peerId,
+        sdp
+    ) {
 
-    const connection =
-        this.getConnection(peerId);
+        const connection =
+            this.getConnection(peerId);
 
-    if (!connection) {
+        if (!connection) {
 
-        console.error(
-            "[RTC] no connection",
+            console.error(
+                "[RTC] no connection",
+                peerId
+            );
+
+            return;
+        }
+
+        await connection.setRemoteDescription(
+            new RTCSessionDescription(
+                sdp
+            )
+        );
+
+        console.log(
+            "[RTC] remote description set"
+        );
+    },
+
+    async createAnswer(peerId) {
+
+        const connection =
+            this.getConnection(peerId);
+
+        if (!connection) {
+
+            console.error(
+                "[RTC] no connection",
+                peerId
+            );
+
+            return null;
+        }
+
+        console.log(
+            "[RTC] creating answer",
             peerId
         );
 
-        return;
-    }
+        const answer =
+            await connection.createAnswer();
 
-    await connection.setRemoteDescription(
-        new RTCSessionDescription(sdp)
-    );
+        await connection.setLocalDescription(
+            answer
+        );
 
-    console.log(
-        "[RTC] remote description set"
-    );
-},
+        console.log(
+            "[RTC] answer local description set"
+        );
 
-async createAnswer(peerId) {
+        WSClient.send({
+            type: "answer",
+            target: peerId,
+            answer:
+                connection.localDescription
+        });
 
-    const connection =
-        this.getConnection(peerId);
+        console.log(
+            "[RTC] answer sent"
+        );
 
-    if (!connection) {
+        return answer;
+    },
 
-        console.error(
-            "[RTC] no connection",
+    async handleOffer(
+        peerId,
+        offer
+    ) {
+
+        console.log(
+            "[RTC] handling offer",
             peerId
         );
 
-        return null;
-    }
+        let connection =
+            this.getConnection(peerId);
 
-    console.log(
-        "[RTC] creating answer",
-        peerId
-    );
+        if (!connection) {
 
-    const answer =
-        await connection.createAnswer();
+            connection =
+                this.createPeerConnection(
+                    peerId
+                );
+        }
 
-    await connection.setLocalDescription(
+        await connection.setRemoteDescription(
+            new RTCSessionDescription(
+                offer
+            )
+        );
+
+        console.log(
+            "[RTC] remote offer set"
+        );
+
+        await this.createAnswer(
+            peerId
+        );
+    },
+
+    async handleAnswer(
+        peerId,
         answer
-    );
+    ) {
 
-    console.log(
-        "[RTC] answer local description set"
-    );
-
-    console.log(
-        "[RTC] ANSWER SDP",
-        JSON.stringify(
-            connection.localDescription
-        )
-    );
-
-    window.latestAnswer =
-    JSON.stringify(
-        connection.localDescription
-    );
-
-    return answer;
-},
-
-async addIceCandidate(
-    peerId,
-    candidate
-) {
-
-    const connection =
-        this.getConnection(peerId);
-
-    if (!connection) {
-
-        console.error(
-            "[RTC] no connection",
+        console.log(
+            "[RTC] handling answer",
             peerId
         );
 
-        return;
-    }
+        await this.setRemoteDescription(
+            peerId,
+            answer
+        );
+    },
 
-    await connection.addIceCandidate(
-        new RTCIceCandidate(candidate)
-    );
+    async addIceCandidate(
+        peerId,
+        candidate
+    ) {
 
-    console.log(
-        "[RTC] ICE candidate added"
-    );
-},
+        const connection =
+            this.getConnection(peerId);
+
+        if (!connection) {
+
+            console.error(
+                "[RTC] no connection",
+                peerId
+            );
+
+            return;
+        }
+
+        await connection.addIceCandidate(
+            new RTCIceCandidate(
+                candidate
+            )
+        );
+
+        console.log(
+            "[RTC] ICE candidate added"
+        );
+    },
+
+    async handleCandidate(
+        peerId,
+        candidate
+    ) {
+
+        console.log(
+            "[RTC] handling candidate",
+            peerId
+        );
+
+        await this.addIceCandidate(
+            peerId,
+            candidate
+        );
+    },
 
 };
 
