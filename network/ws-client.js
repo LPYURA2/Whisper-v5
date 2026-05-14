@@ -245,7 +245,7 @@ export class WSClient {
                     "[WS] unknown message",
                     data
                 );
-        }
+            }
     },
 
     send(data) {
@@ -301,6 +301,6 @@ export class WSClient {
             text
         );
     }
-}
+};
 
 window.WSClient = WSClient;
