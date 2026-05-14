@@ -270,7 +270,7 @@ export class WSClient {
     this.socket.send(
         JSON.stringify(data)
     );
-},
+}
 
     sendMessage(text) {
 
