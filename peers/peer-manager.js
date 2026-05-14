@@ -1,5 +1,5 @@
 import { ProfileManager } from '../profile/profile-manager.js';
-import { RTCManager } from `../network/rtc-manager.js`;
+import { RTCManager } from '../network/rtc-manager.js';
 
 export const PeerManager = {
 
