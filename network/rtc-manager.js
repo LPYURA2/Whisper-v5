@@ -36,7 +36,7 @@ export const RTCManager = {
                     event.candidate)
             );
 
-            window.WSClient.send( {
+            window.wsClient.send( {
                 type: "ice-candidate",
                 target: peerId,
                 candidate: event.candidate
@@ -153,7 +153,7 @@ export const RTCManager = {
             "[RTC] local description set"
         );
 
-        window.WSClient.send({
+        window.wsClient.send({
             type: "offer",
             target: peerId,
             offer:
@@ -236,7 +236,7 @@ export const RTCManager = {
             "[RTC] answer local description set"
         );
 
-        window.WSClient.send({
+        window.wsClient.send({
             type: "answer",
             target: peerId,
             answer:
