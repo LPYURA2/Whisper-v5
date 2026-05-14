@@ -118,7 +118,9 @@ export const RTCManager = {
         return this.peers.get(peerId);
     },
 
-   async createOffer(peerId) {
+ async createOffer(peerId) {
+
+    try {
 
         const connection =
             this.getConnection(peerId);
@@ -141,6 +143,10 @@ export const RTCManager = {
         const offer =
             await connection.createOffer();
 
+        console.log(
+            "[RTC] offer created"
+        );
+
         await connection.setLocalDescription(
             offer
         );
@@ -161,8 +167,17 @@ export const RTCManager = {
         );
 
         return offer;
-    },
 
+    } catch (error) {
+
+        console.error(
+            "[RTC] createOffer failed",
+            error
+        );
+
+        return null;
+    }
+},
     async setRemoteDescription(
         peerId,
         sdp
