@@ -1,4 +1,5 @@
 import { ProfileManager } from '../profile/profile-manager.js';
+import { RTCManager } from `../network/rtc-manager.js`;
 
 export const PeerManager = {
 
@@ -11,20 +12,31 @@ export const PeerManager = {
 
     updatePeers(peers) {
 
-        const myProfile =
-            ProfileManager.getProfile();
+    const myProfile =
+        ProfileManager.getProfile();
 
-        const myId = myProfile.id;
+    const myId = myProfile.id;
 
-        this.peers = peers.filter(
-            (peerId) => peerId !== myId
+    this.peers = peers.filter(
+        (peerId) => peerId !== myId
+    );
+
+    console.log(
+        '[PeerManager] peers updated',
+        this.peers
+    );
+
+    for (const peerId of this.peers) {
+
+        RTCManager.createPeerConnection(
+            peerId
         );
 
-        console.log(
-            '[PeerManager] peers updated',
-            this.peers
+        RTCManager.createOffer(
+            peerId
         );
-    },
+    }
+},
 
     getPeers() {
 
