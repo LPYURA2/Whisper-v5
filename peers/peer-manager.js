@@ -32,9 +32,10 @@ export const PeerManager = {
             peerId
         );
 
-        //RTCManager.createOffer(
-        //    peerId
-        //);
+        if (window.ProfileManager.profile.id < peerId) {
+            RTCManager.createOffer(
+            peerId
+        );
     }
 },
 
