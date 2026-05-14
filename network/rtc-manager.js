@@ -1,3 +1,5 @@
+import { WSClient } from "./ws-client.js";
+
 export const RTCManager = {
 
     peers: new Map(),
@@ -35,6 +37,12 @@ export const RTCManager = {
                 JSON.stringify(
                     event.candidate)
             );
+
+            WSClient.send( {
+                type: "ice-candidate",
+                terget: peerId,
+                candidate: event.candidate
+            });
 
         } else {
 
