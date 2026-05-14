@@ -148,6 +148,11 @@ export const RTCManager = {
         )
     );
 
+    window.latestOffer =
+    JSON.stringify(
+        connection.localDescription
+    );
+
     return offer;
     },
 
@@ -216,8 +221,40 @@ async createAnswer(peerId) {
         )
     );
 
+    window.latestAnswer =
+    JSON.stringify(
+        connection.localDescription
+    );
+
     return answer;
-}
+},
+
+async addIceCandidate(
+    peerId,
+    candidate
+) {
+
+    const connection =
+        this.getConnection(peerId);
+
+    if (!connection) {
+
+        console.error(
+            "[RTC] no connection",
+            peerId
+        );
+
+        return;
+    }
+
+    await connection.addIceCandidate(
+        new RTCIceCandidate(candidate)
+    );
+
+    console.log(
+        "[RTC] ICE candidate added"
+    );
+},
 
 };
 
