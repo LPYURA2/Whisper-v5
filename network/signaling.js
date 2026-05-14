@@ -8,7 +8,7 @@ export const Signaling = {
 
         console.log('[Signaling] initialized');
 
-        this.wsClient = new wsClient();
+        this.wsClient = new WSClient();
 
         window.wsClient = this.wsClient;
         
