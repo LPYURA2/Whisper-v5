@@ -246,7 +246,31 @@ export class WSClient {
                     data
                 );
         }
+    },
+
+    send(data) {
+
+    if (
+        !this.socket ||
+        this.socket.readyState !== WebSocket.OPEN
+    ) {
+
+        console.error(
+            "[WS] socket not connected"
+        );
+
+        return;
     }
+
+    console.log(
+        "[WS] sending",
+        data
+    );
+
+    this.socket.send(
+        JSON.stringify(data)
+    );
+},
 
     sendMessage(text) {
 
