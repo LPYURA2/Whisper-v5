@@ -37,6 +37,8 @@ export const PeerManager = {
             peerId
         );
     }
+}
+        
 },
 
     getPeers() {
