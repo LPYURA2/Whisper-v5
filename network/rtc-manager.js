@@ -1,5 +1,3 @@
-import { WSClient } from "./ws-client.js";
-
 export const RTCManager = {
 
     peers: new Map(),
@@ -38,7 +36,7 @@ export const RTCManager = {
                     event.candidate)
             );
 
-            WSClient.send( {
+            window.WSClient.send( {
                 type: "ice-candidate",
                 target: peerId,
                 candidate: event.candidate
@@ -155,7 +153,7 @@ export const RTCManager = {
             "[RTC] local description set"
         );
 
-        WSClient.send({
+        window.WSClient.send({
             type: "offer",
             target: peerId,
             offer:
@@ -238,7 +236,7 @@ export const RTCManager = {
             "[RTC] answer local description set"
         );
 
-        WSClient.send({
+        window.WSClient.send({
             type: "answer",
             target: peerId,
             answer:
