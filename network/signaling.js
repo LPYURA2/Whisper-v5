@@ -8,8 +8,10 @@ export const Signaling = {
 
         console.log('[Signaling] initialized');
 
-        this.wsClient = new WSClient();
+        this.wsClient = new wsClient();
 
+        window.wsClient = this.wsClient;
+        
         this.wsClient.connect();
 
     }
