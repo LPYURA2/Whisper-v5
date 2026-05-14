@@ -40,7 +40,7 @@ export const RTCManager = {
 
             WSClient.send( {
                 type: "ice-candidate",
-                terget: peerId,
+                target: peerId,
                 candidate: event.candidate
             });
 
