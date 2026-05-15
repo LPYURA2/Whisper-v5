@@ -28,6 +28,10 @@ export const PeerManager = {
 
     for (const peerId of this.peers) {
 
+        if (peerId === window.ProfileManager.profile.id) {
+            continue;
+        }
+
         RTCManager.createPeerConnection(
             peerId
         );
