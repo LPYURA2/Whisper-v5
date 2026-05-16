@@ -39,6 +39,7 @@ export const RTCManager = {
             window.wsClient.send( {
                 type: "ice-candidate",
                 target: peerId,
+                from: window.ProfileManager.profile.id,
                 candidate: event.candidate
             });
 
@@ -156,6 +157,7 @@ export const RTCManager = {
         window.wsClient.send({
             type: "offer",
             target: peerId,
+            from: window.ProfileManager.profile.id,
             offer:
                 connection.localDescription
         });
@@ -239,6 +241,7 @@ export const RTCManager = {
         window.wsClient.send({
             type: "answer",
             target: peerId,
+            from: window.ProfileManager.profile.id,
             answer:
                 connection.localDescription
         });
