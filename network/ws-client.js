@@ -202,6 +202,7 @@ export class WSClient {
 
                 console.log(
                     "[WS] OFFER received"
+                    data
                 );
                 
                 RTCManager.handleOffer(
@@ -215,7 +216,15 @@ export class WSClient {
 
                 console.log(
                     "[WS] ANSWER received"
+                    data
                 );
+
+                RTCManager.handleAnswer(
+                    data.from,
+                    data.answer
+                );
+
+                break;
 
             
 
