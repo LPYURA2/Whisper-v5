@@ -26,7 +26,7 @@ export const PeerManager = {
         this.peers
     );
 
-    const localId = window.ProfileManager.profile.id;
+    const localId = window.ClientId;
 
     for (const peerId of this.peers) {
 
