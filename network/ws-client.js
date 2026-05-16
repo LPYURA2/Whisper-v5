@@ -15,8 +15,7 @@ export class WSClient {
 
         this.connected = false;
 
-        this.peerId =
-            crypto.randomUUID();
+        this.peerId = window.ProfileManager.profile.id;
 
         this.peers = [];
 
