@@ -26,16 +26,7 @@ export const PeerManager = {
         this.peers
     );
 
-    const localId = window.ClientId;
-
-    if (!localId) {
-
-        console.log(
-            "[PeerManager] localId not ready",
-        );
-
-        return;
-    }
+    const localId = window.ProfileManager.profile.id;
 
     for (const peerId of this.peers) {
 
