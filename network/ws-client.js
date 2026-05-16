@@ -201,7 +201,7 @@ export class WSClient {
             case "offer":
 
                 console.log(
-                    "[WS] OFFER received"
+                    "[WS] OFFER received",
                     data
                 );
                 
@@ -215,7 +215,7 @@ export class WSClient {
             case "answer":
 
                 console.log(
-                    "[WS] ANSWER received"
+                    "[WS] ANSWER received",
                     data
                 );
 
