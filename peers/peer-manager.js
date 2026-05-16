@@ -28,6 +28,15 @@ export const PeerManager = {
 
     const localId = window.ClientId;
 
+    if (!localId) {
+
+        console.log(
+            "[PeerManager] localId not ready",
+        );
+
+        return;
+    }
+
     for (const peerId of this.peers) {
 
         if (peerId === localId) {
