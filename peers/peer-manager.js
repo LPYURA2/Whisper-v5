@@ -26,9 +26,11 @@ export const PeerManager = {
         this.peers
     );
 
+    const localId = window.ProfileManager.profile.id;
+
     for (const peerId of this.peers) {
 
-        if (peerId === window.ProfileManager.profile.id) {
+        if (peerId === localId) {
             continue;
         }
 
@@ -36,7 +38,7 @@ export const PeerManager = {
             peerId
         );
 
-        if (window.ProfileManager.profile.id < peerId) {
+        if (localId.localeCompare(peerId) < 0) {
             RTCManager.createOffer(
             peerId
         );
