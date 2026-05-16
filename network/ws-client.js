@@ -132,6 +132,13 @@ export class WSClient {
                     "[WS] server welcome"
                 );
 
+                window.ClientId = data.id;
+
+                console.log(
+                    "[WS] local client id",
+                    window.ClientId
+                );
+
                 break;
 
             case "peers":
