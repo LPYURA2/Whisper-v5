@@ -238,7 +238,7 @@ export class WSClient {
             case "ice-candidate":
 
                 console.log(
-                    "[WS] ICE candidate received"
+                    "[WS] ICE candidate received",
                 );
 
                 RTCManager.handleCandidate(
