@@ -34,11 +34,27 @@ export const PeerManager = {
             continue;
         }
 
+        console.log(
+            "[PeerManager] localId",
+            localId
+        );
+
+        console.log(
+            "[PeerManager] peerId",
+            peerId
+        );
+
+        console.log(
+            "[PeerManager] compare",
+            localId.localeCompare(peerId)
+        );
+
         RTCManager.createPeerConnection(
             peerId
         );
 
-        if (localId.localeCompare(peerId) < 0) {
+        if (localId.localeCompare(peerId) < 0)
+        {
             RTCManager.createOffer(
             peerId
         );
