@@ -440,6 +440,7 @@ export const RTCManager = {
         type: "chat",
         id: crypto.randomUUID(),
         timestamp: Date.now(),
+        from: ProfileManager.profile.id,
         text
     };
 
