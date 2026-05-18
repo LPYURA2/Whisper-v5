@@ -142,13 +142,18 @@ export const RTCManager = {
         }
     };
 
-    this.peers.set(
+   this.peers.set(
         peerId,
         connection
-
-    return connection
-            
     );
+
+    console.log(
+        "[RTCManager] connection created",
+        peerId
+    );
+
+    return connection;
+},
 
     console.log(
         "[RTCManager] connection created",
