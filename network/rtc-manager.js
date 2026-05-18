@@ -1,3 +1,5 @@
+import { UI } from "./ui.js";
+
 export const RTCManager = {
 
     peers: new Map(),
