@@ -2,15 +2,18 @@ export const RTCManager = {
 
     peers: new Map(),
 
+    connections: new Map(),
+
+    channels: new Map(),
+
     init() {
 
-        console.log("[RTCManager] init");
+        console.log(
+            "[RTCManager] init"
+        );
     },
 
-        this.connections = new Map();
-
-        this.channels = new Map();
-    }
+    
 
     createPeerConnection(peerId) {
 
