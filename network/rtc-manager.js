@@ -145,6 +145,9 @@ export const RTCManager = {
     this.peers.set(
         peerId,
         connection
+
+    return connection
+            
     );
 
     console.log(
