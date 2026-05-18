@@ -175,7 +175,7 @@ export const RTCManager = {
 
     getConnection(peerId) {
 
-        return this.connection.get(peerId);
+        return this.connections.get(peerId);
     },
 
  async createOffer(peerId) {
