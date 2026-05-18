@@ -7,6 +7,11 @@ export const RTCManager = {
         console.log("[RTCManager] init");
     },
 
+        this.connections = new Map();
+
+        this.channels = new Map();
+    }
+
     createPeerConnection(peerId) {
 
     console.log(
@@ -56,6 +61,11 @@ export const RTCManager = {
             "chat"
         );
 
+    this.channels.set(
+        peerId,
+        channel
+    };
+
     channel.onopen = () => {
 
         console.log(
@@ -66,18 +76,36 @@ export const RTCManager = {
 
     channel.onmessage = (event) => {
 
+    try {
+
+        const packet =
+            JSON.parse(event.data);
+
         console.log(
-            "[RTC] message",
+            "[RTC] packet received",
             peerId,
-            event.data
+            packet
         );
-    };
+
+    } catch (err) {
+
+        console.error(
+            "[RTC] invalid packet",
+            err
+        );
+    }
+};
 
     connection.ondatachannel =
         (event) => {
 
             const incomingChannel =
                 event.channel;
+
+            this.channels.set(
+                peerId,
+                incomingChannel
+            );
 
             incomingChannel.onopen =
                 () => {
@@ -89,15 +117,27 @@ export const RTCManager = {
                 };
 
             incomingChannel.onmessage =
-                (msgEvent) => {
+    (event) => {
 
-                    console.log(
-                        "[RTC] incoming message",
-                        peerId,
-                        msgEvent.data
-                    );
-                };
-        };
+        try {
+
+            const packet =
+                JSON.parse(event.data);
+
+            console.log(
+                "[RTC] incoming packet",
+                peerId,
+                packet
+            );
+
+        } catch (err) {
+
+            console.error(
+                "[RTC] invalid incoming packet",
+                err
+            );
+        }
+    };
 
     this.peers.set(
         peerId,
@@ -349,6 +389,48 @@ export const RTCManager = {
             candidate
         );
     },
+
+    sendMessage(peerId, text) {
+
+    const channel =
+        this.channels.get(peerId);
+
+    if (!channel) {
+
+        console.error(
+            "[RTC] no channel",
+            peerId
+        );
+
+        return;
+    }
+
+    if (channel.readyState !== "open") {
+
+        console.error(
+            "[RTC] channel not open",
+            peerId
+        );
+
+        return;
+    }
+
+    const packet = {
+        type: "chat",
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        text
+    };
+
+    channel.send(
+        JSON.stringify(packet)
+    );
+
+    console.log(
+        "[RTC] message sent",
+        packet
+    );
+}
 
 };
 
