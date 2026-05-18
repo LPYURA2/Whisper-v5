@@ -145,7 +145,7 @@ export const RTCManager = {
                 packet
             );
 
-            if (packet.type ==== "chat") {
+            if (packet.type === "chat") {
 
                 UI.addMessage(
                     packet.text,
@@ -175,13 +175,6 @@ export const RTCManager = {
     return connection;
 },
 
-    console.log(
-        "[RTCManager] connection created",
-        peerId
-    );
-
-    return connection;
-},
 
     getConnection(peerId) {
 
