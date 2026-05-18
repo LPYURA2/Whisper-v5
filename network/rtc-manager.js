@@ -1,4 +1,4 @@
-import { UI } from "./ui.js";
+import { UI } from "../ui/ui.js";
 
 export const RTCManager = {
 
