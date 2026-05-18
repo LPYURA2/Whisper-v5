@@ -33,6 +33,16 @@ export const RTCManager = {
             ]
         });
 
+        this.connections.set(
+            peerId,
+            connection
+        );
+
+        console.log(
+            "[RTCManager] connection created",
+            peerId
+        );
+
     connection.onicecandidate =
     (event) => {
 
