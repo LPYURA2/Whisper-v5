@@ -67,7 +67,7 @@ export const RTCManager = {
     this.channels.set(
         peerId,
         channel
-    };
+    );
 
     channel.onopen = () => {
 
