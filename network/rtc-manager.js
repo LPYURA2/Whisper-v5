@@ -143,6 +143,14 @@ export const RTCManager = {
                 packet
             );
 
+            if (packet.type ==== "chat") {
+
+                UI.addMessage(
+                    packet.text,
+                    false
+                );
+            }
+
         } catch (err) {
 
             console.error(
@@ -446,6 +454,11 @@ export const RTCManager = {
 
     channel.send(
         JSON.stringify(packet)
+    );
+
+    UI.addMessage(
+        text,
+        true
     );
 
     console.log(
