@@ -21,5 +21,27 @@ export const UI = {
         </main>
       </div>
     `;
+  },
+
+  addMessage(text, own = false) {
+
+    const messages =
+      document.querySelector(
+        '.messages'
+      );
+
+    const div =
+      document.createElement(
+        'div'
+      );
+
+    div.className =
+      own
+      ? 'message own'
+      : 'message';
+
+    div.textContent = text;
+
+    messages.appendChild(div);
   }
 };
