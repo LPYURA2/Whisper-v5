@@ -111,69 +111,69 @@ export const RTCManager = {
     }
 };
 
-    connection.ondatachannel =
-        (event) => {
-
-            const incomingChannel =
-                event.channel;
-
-            this.channels.set(
-                peerId,
-                incomingChannel
-            );
-
-            incomingChannel.onopen =
-                () => {
-
-                    console.log(
-                        "[RTC] incoming channel open",
-                        peerId
-                    );
-                };
-
-            incomingChannel.onmessage =
+connection.ondatachannel =
     (event) => {
 
-        try {
+        const incomingChannel =
+            event.channel;
 
-            const packet =
-                JSON.parse(event.data);
+        this.channels.set(
+            peerId,
+            incomingChannel
+        );
 
-            console.log(
-                "[RTC] incoming packet",
-                peerId,
-                packet
-            );
+        incomingChannel.onopen =
+            () => {
 
-            if (packet.type === "chat") {
-
-                UI.addMessage(
-                    packet.text,
-                    false
+                console.log(
+                    "[RTC] incoming channel open",
+                    peerId
                 );
-            }
+            };
 
-        } catch (err) {
+        incomingChannel.onmessage =
+            (event) => {
 
-            console.error(
-                "[RTC] invalid incoming packet",
-                err
-            );
-        }
+                try {
+
+                    const packet =
+                        JSON.parse(event.data);
+
+                    console.log(
+                        "[RTC] incoming packet",
+                        peerId,
+                        packet
+                    );
+
+                    if (packet.type === "chat") {
+
+                        UI.addMessage(
+                            packet.text,
+                            false
+                        );
+                    }
+
+                } catch (err) {
+
+                    console.error(
+                        "[RTC] invalid incoming packet",
+                        err
+                    );
+                }
+            };
     };
-        };
 
 this.connections.set(
-        peerId,
-        connection
-    );
+    peerId,
+    connection
+);
 
-    console.log(
-        "[RTCManager] connection created",
-        peerId
-    );
+console.log(
+    "[RTCManager] connection created",
+    peerId
+);
 
-    return connection;
+return connection;
 },
 
 getConnection(peerId) {
