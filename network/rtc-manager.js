@@ -162,7 +162,7 @@ export const RTCManager = {
         }
     };
 
-   this.peers.set(
+this.connections.set(
         peerId,
         connection
     );
@@ -175,12 +175,12 @@ export const RTCManager = {
     return connection;
 },
 
-    getConnection(peerId) {
+getConnection(peerId) {
 
-        return this.connections.get(peerId);
-    },
+    return this.connections.get(peerId);
+},
 
- async createOffer(peerId) {
+async createOffer(peerId) {
 
     try {
 
