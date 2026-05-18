@@ -175,7 +175,6 @@ export const RTCManager = {
     return connection;
 },
 
-
     getConnection(peerId) {
 
         return this.connections.get(peerId);
