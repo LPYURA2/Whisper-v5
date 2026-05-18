@@ -161,6 +161,7 @@ export const RTCManager = {
             );
         }
     };
+        };
 
 this.connections.set(
         peerId,
