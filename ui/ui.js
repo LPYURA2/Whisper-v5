@@ -23,25 +23,39 @@ export const UI = {
     `;
   },
 
-  addMessage(text, own = false) {
+addMessage(text, own = false) {
+
+    console.log(
+        "[UI] addMessage",
+        text
+    );
 
     const messages =
-      document.querySelector(
-        '.messages'
-      );
+        document.querySelector(
+            '.messages'
+        );
+
+    if (!messages) {
+
+        console.error(
+            "[UI] messages container missing"
+        );
+
+        return;
+    }
 
     const div =
-      document.createElement(
-        'div'
-      );
+        document.createElement(
+            'div'
+        );
 
     div.className =
-      own
-      ? 'message own'
-      : 'message';
+        own
+        ? 'message own'
+        : 'message';
 
     div.textContent = text;
 
     messages.appendChild(div);
-  }
+},
 };
