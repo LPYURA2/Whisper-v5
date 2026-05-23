@@ -147,6 +147,10 @@ connection.ondatachannel =
 
                     if (packet.type === "chat") {
 
+                        console.log(
+                            "[RTC] calling UI.addMessage"
+                        );
+
                         UI.addMessage(
                             packet.text,
                             false
