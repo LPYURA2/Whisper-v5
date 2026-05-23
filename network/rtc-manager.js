@@ -145,27 +145,31 @@ connection.ondatachannel =
                         packet
                     );
 
-                    if (packet.type === "chat") {
+if (packet.type === "chat") {
 
-                        console.log(
-                            "[RTC] CHAT DETECTED"
-                        );
+    console.log(
+        "[RTC] CHAT DETECTED"
+    );
 
-                        UI.addMessage(
-                            packet.text,
-                            false
-                        );
-                    }
+    try {
 
-                } catch (err) {
+        UI.addMessage(
+            packet.text,
+            false
+        );
 
-                    console.error(
-                        "[RTC] invalid incoming packet",
-                        err
-                    );
-                }
-            };
-    };
+        console.log(
+            "[RTC] UI MESSAGE ADDED"
+        );
+
+    } catch (err) {
+
+        console.error(
+            "[RTC] UI FAILED",
+            err
+        );
+    }
+}
 
 this.connections.set(
     peerId,
