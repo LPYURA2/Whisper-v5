@@ -169,7 +169,7 @@ if (packet.type === "chat") {
             err
         );
     }
-}
+};
 
 this.connections.set(
     peerId,
