@@ -1,3 +1,5 @@
+console.log("[RTC] NEW VERSION LOADED");
+
 import { UI } from "../ui/ui.js";
 
 export const RTCManager = {
