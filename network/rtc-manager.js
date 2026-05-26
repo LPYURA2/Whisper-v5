@@ -142,6 +142,16 @@ connection.ondatachannel =
                         JSON.parse(event.data);
 
                     console.log(
+                        "[RTC] AFTER PARSE",
+                        packet
+                    );
+
+                     console.log(
+                        "[RTC] TYPE VALUE",
+                        packet.type
+                    );
+
+                    console.log(
                         "[RTC] packet received FULL",
                         JSON.stringify(packet)
                     );
