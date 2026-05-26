@@ -145,6 +145,11 @@ connection.ondatachannel =
                         packet
                     );
 
+                    console.log(
+                        "[RTC] packet.type =",
+                        pycket.type
+                    );
+
                     if (packet.type === "chat") {
 
                         console.log(
