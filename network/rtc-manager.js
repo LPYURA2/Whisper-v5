@@ -140,36 +140,46 @@ connection.ondatachannel =
                         JSON.parse(event.data);
 
                     console.log(
-                        "[RTC] incoming packet",
+                        "[RTC] packet received",
                         peerId,
                         packet
                     );
 
-if (packet.type === "chat") {
+                    if (packet.type === "chat") {
 
-    console.log(
-        "[RTC] CHAT DETECTED"
-    );
+                        console.log(
+                            "[RTC] CHAT DETECTED"
+                        );
 
-    try {
+                        try {
 
-        UI.addMessage(
-            packet.text,
-            false
-        );
+                            UI.addMessage(
+                                packet.text,
+                                false
+                            );
 
-        console.log(
-            "[RTC] UI MESSAGE ADDED"
-        );
+                            console.log(
+                                "[RTC] UI MESSAGE ADDED"
+                            );
 
-    } catch (err) {
+                        } catch (err) {
 
-        console.error(
-            "[RTC] UI FAILED",
-            err
-        );
-    }
-};
+                            console.error(
+                                "[RTC] UI FAILED",
+                                err
+                            );
+                        }
+                    }
+
+                } catch (err) {
+
+                    console.error(
+                        "[RTC] invalid incoming packet",
+                        err
+                    );
+                }
+            };
+    };
 
 this.connections.set(
     peerId,
