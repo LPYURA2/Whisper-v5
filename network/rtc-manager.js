@@ -140,13 +140,12 @@ connection.ondatachannel =
                         JSON.parse(event.data);
 
                     console.log(
-                        "[RTC] packet received",
-                        peerId,
-                        packet
+                        "[RTC] packet received FULL",
+                        JSON.stringify(packet)
                     );
 
                     console.log(
-                        "[RTC] packet.type =",
+                        "[RTC] packet.type",
                         pycket.type
                     );
 
