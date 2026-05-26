@@ -142,12 +142,13 @@ connection.ondatachannel =
                         JSON.parse(event.data);
 
                     console.log(
-                        "[RTC] AFTER PARSE",
+                        "[RTC] packet recived",
+                        peerId,
                         packet
                     );
 
                      console.log(
-                        "[RTC] TYPE VALUE",
+                        "[RTC] packet type:",
                         packet.type
                     );
 
@@ -158,7 +159,7 @@ connection.ondatachannel =
 
                     console.log(
                         "[RTC] packet.type",
-                        pycket.type
+                        packet.type
                     );
 
                     if (packet.type === "chat") {
