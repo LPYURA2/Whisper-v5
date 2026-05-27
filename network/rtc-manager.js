@@ -2,6 +2,8 @@ console.log("[RTC] NEW VERSION LOADED");
 
 import { UI } from "../ui/ui.js";
 
+console.log("[RTC] UI  IMPORT", UI);
+
 export const RTCManager = {
 
     peers: new Map(),
