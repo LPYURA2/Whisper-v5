@@ -59,3 +59,5 @@ addMessage(text, own = false) {
     messages.appendChild(div);
 },
 };
+
+window.UI = UI;
