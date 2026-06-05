@@ -135,70 +135,40 @@ connection.ondatachannel =
                 );
             };
 
-        incomingChannel.onmessage =
-            (event) => {
+incomingChannel.onmessage = (event) => {
 
-                try {
+    try {
 
-                    const packet =
-                        JSON.parse(event.data);
+        const packet =
+            JSON.parse(event.data);
 
-                    console.log(
-                        "[RTC] packet recived",
-                        peerId,
-                        packet
-                    );
+        console.log(
+            "[RTC] packet received",
+            peerId,
+            packet
+        );
 
-                     console.log(
-                        "[RTC] packet type:",
-                        packet.type
-                    );
+        console.log(
+            "[RTC] FORCE MESSAGE"
+        );
 
-                    console.log(
-                        "[RTC] packet received FULL",
-                        JSON.stringify(packet)
-                    );
+        UI.addMessage(
+            packet.text,
+            false
+        );
 
-                    console.log(
-                        "[RTC] packet.type",
-                        packet.type
-                    );
+        console.log(
+            "[RTC] UI MESSAGE ADDED"
+        );
 
-                    if (packet.type === "chat") {
+    } catch (err) {
 
-                        console.log(
-                            "[RTC] CHAT DETECTED"
-                        );
-
-                        try {
-
-                            UI.addMessage(
-                                packet.text,
-                                false
-                            );
-
-                            console.log(
-                                "[RTC] UI MESSAGE ADDED"
-                            );
-
-                        } catch (err) {
-
-                            console.error(
-                                "[RTC] UI FAILED",
-                                err
-                            );
-                        }
-                    }
-
-                } catch (err) {
-
-                    console.error(
-                        "[RTC] invalid incoming packet",
-                        err
-                    );
-                }
-            };
-    };
+        console.error(
+            "[RTC] incoming handler failed",
+            err
+        );
+    }
+};
 
 this.connections.set(
     peerId,
