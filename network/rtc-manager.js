@@ -137,6 +137,10 @@ connection.ondatachannel =
 
 incomingChannel.onmessage = (event) => {
 
+    console.log(
+        "WHISPER TEST"
+    );
+
     try {
 
         const packet =
