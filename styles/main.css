@@ -30,6 +30,30 @@ body {
 .messages {
   flex: 1;
   padding: 16px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  overflow-y: auto;
+}
+
+.message {
+  max-width: 70%;
+  padding: 10px 14px;
+
+  background: #374151;
+  border-radius: 12px;
+
+  align-self: flex-start;
+
+  word-break: break-word;
+}
+
+.message.own {
+  align-self: flex-end;
+
+  background: #2563eb;
 }
 
 .input-bar {
