@@ -107,7 +107,7 @@ export const RTCManager = {
         );
 
         const chat =
-            document.getElement(
+            document.getElementById(
                 "chat-message"
             );
 
