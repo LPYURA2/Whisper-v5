@@ -106,20 +106,10 @@ export const RTCManager = {
             packet
         );
 
-        const chat =
-            document.getElementById(
-                "chat-message"
-            );
-
-        const div =
-            document.createElement(
-                "div"
-            );
-
-        div.textContent =
-            packet.text;
-
-        chat.appendChild(div);
+        UI.addMessage(
+            packet.text,
+            false
+        );
 
     } catch (err) {
 
