@@ -149,6 +149,11 @@ incomingChannel.onmessage = (event) => {
         );
 
         console.log(
+            "[RTC] UI object",
+            UI
+        );
+
+        console.log(
             "[RTC] FORCE MESSAGE"
         );
 
