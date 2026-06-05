@@ -169,7 +169,7 @@ incomingChannel.onmessage = (event) => {
         );
     }
 };
-
+    };
 this.connections.set(
     peerId,
     connection
