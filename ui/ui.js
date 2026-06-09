@@ -1,63 +1,135 @@
+import { RTCManager } from "../network/rtc-manager.js";
+import { PeerManager } from "../peers/peer-manager.js";
+
 export const UI = {
-  init() {
-    console.log('[UI] initialized');
+    init() {
 
-    const app = document.getElementById('app');
+        console.log('[UI] initialized');
 
-    app.innerHTML = `
-      <div class="whisper-shell">
-        <aside class="sidebar">
-          <h2>Whisper</h2>
-          <div class="peer-list">No peers connected</div>
-        </aside>
+        const app =
+            document.getElementById(
+                'app'
+            );
 
-        <main class="chat-window">
-          <div class="messages"></div>
+        app.innerHTML = `
+            <div class="whisper-shell">
+                <aside class="sidebar">
+                    <h2>Whisper</h2>
+                    <div class="peer-list">
+                        Нет подключенных пользователей
+                    </div>
+                </aside>
 
-          <div class="input-bar">
-            <input type="text" placeholder="Type message..." />
-            <button>Send</button>
-          </div>
-        </main>
-      </div>
-    `;
-  },
+                <main class="chat-window">
+                    <div class="messages"></div>
 
-addMessage(text, own = false) {
+                    <div class="input-bar">
+                        <input
+                            type="text"
+                            placeholder="Введите сообщение..."
+                        />
+                        <button>
+                            Отправить
+                        </button>
+                    </div>
+                </main>
+            </div>
+        `;
 
-    console.log(
-        "[UI] addMessage",
-        text
-    );
+        const input =
+            document.querySelector(
+                ".input-bar input"
+            );
 
-    const messages =
-        document.querySelector(
-            '.messages'
+        const button =
+            document.querySelector(
+                ".input-bar button"
+            );
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                const text =
+                    input.value.trim();
+
+                if (!text) {
+                    return;
+                }
+
+                const peers =
+                    PeerManager.getPeers();
+
+                if (peers.length === 0) {
+
+                    console.error(
+                        "[UI] no peers"
+                    );
+
+                    return;
+                }
+
+                RTCManager.sendMessage(
+                    peers[0],
+                    text
+                );
+
+                input.value = "";
+            }
         );
 
-    if (!messages) {
+        input.addEventListener(
+            "keydown",
+            (event) => {
 
-        console.error(
-            "[UI] messages container missing"
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    button.click();
+                }
+            }
+        );
+    },
+
+    addMessage(text, own = false) {
+
+        console.log(
+            "[UI] addMessage",
+            text
         );
 
-        return;
+        const messages =
+            document.querySelector(
+                ".messages"
+            );
+
+        if (!messages) {
+
+            console.error(
+                "[UI] messages container missing"
+            );
+
+            return;
+        }
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+        div.className =
+            own
+                ? "message own"
+                : "message";
+
+        div.textContent =
+            text;
+
+        messages.appendChild(
+            div
+        );
     }
-
-    const div =
-        document.createElement(
-            'div'
-        );
-
-    div.className =
-        own
-        ? 'message own'
-        : 'message';
-
-    div.textContent = text;
-
-    messages.appendChild(div);
-},
 };
 
 window.UI = UI;
