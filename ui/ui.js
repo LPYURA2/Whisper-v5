@@ -163,7 +163,37 @@ addContactButton.addEventListener(
         messages.appendChild(
             div
         );
+    },
+
+    renderContacts(contacts) {
+
+    const list =
+        document.querySelector(
+            ".peer-list"
+        );
+
+    if (!list) {
+        return;
     }
+
+    list.innerHTML = "";
+
+    for (const contact of contacts) {
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+        div.className =
+            "contact-item";
+
+        div.textContent =
+            contact.name;
+
+        list.appendChild(div);
+    }
+}
 };
 
 window.UI = UI;
