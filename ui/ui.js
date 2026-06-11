@@ -1,5 +1,6 @@
 import { RTCManager } from "../network/rtc-manager.js";
 import { PeerManager } from "../peers/peer-manager.js";
+import { ContactManager } from "../contacts/contact-manager.js";
 
 export const UI = {
     init() {
@@ -80,19 +81,50 @@ export const UI = {
             }
         );
 
-        input.addEventListener(
-            "keydown",
-            (event) => {
+       input.addEventListener(
+    "keydown",
+    (event) => {
 
-                if (
-                    event.key === "Enter"
-                ) {
+        if (
+            event.key === "Enter"
+        ) {
 
-                    button.click();
-                }
-            }
+            button.click();
+        }
+    }
+);
+
+const addContactButton =
+    document.getElementById(
+        "add-contact"
+    );
+
+addContactButton.addEventListener(
+    "click",
+    () => {
+
+        const id =
+            prompt(
+                "Введите Whisper ID"
+            );
+
+        if (!id) {
+            return;
+        }
+
+        ContactManager.addContact({
+            id,
+            name:
+                id.substring(0, 8)
+        });
+
+        console.log(
+            "[UI] contact added"
         );
-    },
+    }
+);
+
+},
 
     addMessage(text, own = false) {
 
