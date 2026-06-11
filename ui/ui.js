@@ -15,9 +15,11 @@ export const UI = {
             <div class="whisper-shell">
                 <aside class="sidebar">
                     <h2>Whisper</h2>
-                    <div class="peer-list">
-                        Нет подключенных пользователей
-                    </div>
+                    <div class="peer-list"></div>
+
+                    <button id="add-contact">
+                        + Добавить контакт
+                    </button>
                 </aside>
 
                 <main class="chat-window">
