@@ -3,6 +3,9 @@ import { PeerManager } from "../peers/peer-manager.js";
 import { ContactManager } from "../contacts/contact-manager.js";
 
 export const UI = {
+
+    selectedContactId: null,
+    
     init() {
 
         console.log('[UI] initialized');
@@ -198,6 +201,20 @@ addContactButton.addEventListener(
 
         div.textContent =
             contact.name;
+
+        div.addEventListener(
+            "click",
+            () => {
+
+                UI.selectedContactId =
+                    contact.id;
+
+                console.log(
+                    "[UI] active chat",
+                    contact.id
+                );
+            }
+        );
 
         list.appendChild(div);
     }
