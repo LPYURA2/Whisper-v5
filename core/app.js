@@ -9,6 +9,8 @@ import { KeyManager } from '../crypto/key-manager.js';
 
 import { PeerManager } from '../peers/peer-manager.js';
 
+import { ContactManager } from '../contacts/contact-manager.js';
+
 import { RTCManager } from '../network/rtc-manager.js';
 
 import { Signaling } from '../network/signaling.js';
@@ -31,6 +33,11 @@ async function bootstrap() {
     await KeyManager.init();
 
     PeerManager.init();
+
+    console.log(
+        "[Contacts] loaded",
+        ContactManager
+    );  
 
     RTCManager.init();
 
