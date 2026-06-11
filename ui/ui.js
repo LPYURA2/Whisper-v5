@@ -63,20 +63,17 @@ export const UI = {
                     return;
                 }
 
-                const peers =
-                    PeerManager.getPeers();
-
-                if (peers.length === 0) {
+                if (!UI.selectedContactId) {
 
                     console.error(
-                        "[UI] no peers"
+                        "[UI] no active chat"
                     );
 
                     return;
                 }
 
                 RTCManager.sendMessage(
-                    peers[0],
+                    UI.selectedContactId,
                     text
                 );
 
