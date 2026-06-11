@@ -72,3 +72,21 @@ body {
   padding: 12px 20px;
   cursor: pointer;
 }
+
+.contact-item {
+
+    padding: 12px;
+
+    margin-bottom: 8px;
+
+    background: #374151;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+}
+
+.contact-item:hover {
+
+    background: #4b5563;
+}
