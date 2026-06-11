@@ -118,6 +118,14 @@ addContactButton.addEventListener(
                 id.substring(0, 8)
         });
 
+        UI.renderContacts(
+            ContactManager.getContacts()
+        );
+
+        console.log(
+            "[UI] contact added"
+        );
+
         console.log(
             "[UI] contact added"
         );
