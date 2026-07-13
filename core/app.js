@@ -5,6 +5,8 @@ import { Storage } from '../storage/storage.js';
 
 import { ProfileManager } from '../profile/profile-manager.js';
 
+import { Welcome } from "./welcome.js";
+
 import { KeyManager } from '../crypto/key-manager.js';
 
 import { PeerManager } from '../peers/peer-manager.js';
