@@ -15,19 +15,21 @@ export const ProfileManager = {
 
         if (profile) {
 
-            this.profile =
-                profile;
+    this.profile = profile;
 
-            console.log(
-                "[Profile] loaded",
-                this.profile
-            );
+    console.log(
+        "[Profile] loaded",
+        this.profile
+    );
 
-            return;
-        }
+    return;
+}
 
-        await this.createProfile();
-    },
+console.log(
+    "[Profile] profile not found"
+);
+
+this.profile = null;
 
     async createProfile() {
 
