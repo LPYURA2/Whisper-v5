@@ -1,6 +1,5 @@
 import { UI } from '../ui/ui.js';
 import { UILayout } from '../ui/layout.js';
-import { startMessenger } from "./start-messenger.js";
 import { Storage } from '../storage/storage.js';
 
 import { ProfileManager } from '../profile/profile-manager.js';
