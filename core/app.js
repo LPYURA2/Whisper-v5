@@ -1,11 +1,13 @@
 import { UI } from '../ui/ui.js';
 import { UILayout } from '../ui/layout.js';
-
+import { startMessenger } from "./start-messenger.js";
 import { Storage } from '../storage/storage.js';
 
 import { ProfileManager } from '../profile/profile-manager.js';
 
 import { Welcome } from "./welcome.js";
+
+import { startMessenger } from "./start-messenger.js";
 
 import { KeyManager } from '../crypto/key-manager.js';
 
@@ -39,20 +41,11 @@ async function bootstrap() {
     return;
     }
 
-    await KeyManager.init();
+    await startMessenger();
 
-    PeerManager.init();
-
-    console.log(
-        "[Contacts] loaded",
-        ContactManager
-    );  
-
-    RTCManager.init();
-
-    await Signaling.init();
-
-    console.log('[Bootstrap] Ready');
+console.log(
+    "[Bootstrap] Ready"
+);
 }
 
 bootstrap().catch((err) => {
