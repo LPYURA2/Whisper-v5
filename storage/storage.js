@@ -2,13 +2,31 @@ export const Storage = {
 
     async init() {
 
-        console.log("[Storage] initialized");
+        console.log(
+            "[Storage] initialized"
+        );
     },
 
-    async get(key) {
+    /*
+     * ==========================
+     * PROFILE
+     * ==========================
+     */
+
+    async saveProfile(profile) {
+
+        localStorage.setItem(
+            "profile",
+            JSON.stringify(profile)
+        );
+    },
+
+    async loadProfile() {
 
         const raw =
-            localStorage.getItem(key);
+            localStorage.getItem(
+                "profile"
+            );
 
         if (!raw) {
             return null;
@@ -17,17 +35,11 @@ export const Storage = {
         return JSON.parse(raw);
     },
 
-    async set(key, value) {
+    async deleteProfile() {
 
-        localStorage.setItem(
-            key,
-            JSON.stringify(value)
+        localStorage.removeItem(
+            "profile"
         );
-    },
-
-    async remove(key) {
-
-        localStorage.removeItem(key);
     }
 
 };
