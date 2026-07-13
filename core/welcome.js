@@ -1,6 +1,5 @@
 import { ProfileManager } from "../profile/profile-manager.js";
-import { UI } from "../ui/ui.js";
-import { UILayout } from "../ui/layout.js";
+import { startMessenger } from "./start-messenger.js";
 
 export const Welcome = {
 
@@ -21,15 +20,13 @@ export const Welcome = {
                 </p>
 
                 <input
-                    id="welcome-name"
+                    id="username"
                     type="text"
-                    placeholder="Введите имя"
+                    placeholder="Введите ваше имя"
                 />
 
-                <button
-                    id="create-profile"
-                >
-                    Создать профиль
+                <button id="continue">
+                    Войти
                 </button>
 
             </div>
@@ -37,39 +34,51 @@ export const Welcome = {
 
         const input =
             document.getElementById(
-                "welcome-name"
+                "username"
             );
 
         const button =
             document.getElementById(
-                "create-profile"
+                "continue"
             );
 
         button.addEventListener(
             "click",
             async () => {
 
-                const name =
+                const username =
                     input.value.trim();
 
-                if (!name) {
+                if (!username) {
+
+                    alert(
+                        "Введите имя"
+                    );
+
                     return;
                 }
 
-                await ProfileManager.createProfile();
-
-                await ProfileManager.setUsername(
-                    name
+                await ProfileManager.createProfile(
+                    username
                 );
 
-                UI.init();
+                await startMessenger();
+            }
+        );
 
-                UILayout.init();
+        input.addEventListener(
+            "keydown",
+            (event) => {
 
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    button.click();
+                }
             }
         );
     }
-
 };
 
 window.Welcome = Welcome;
