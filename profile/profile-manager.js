@@ -15,21 +15,22 @@ export const ProfileManager = {
 
         if (profile) {
 
-    this.profile = profile;
+            this.profile = profile;
 
-    console.log(
-        "[Profile] loaded",
-        this.profile
-    );
+            console.log(
+                "[Profile] loaded",
+                this.profile
+            );
 
-    return;
-}
+            return;
+        }
 
-console.log(
-    "[Profile] profile not found"
-);
+        console.log(
+            "[Profile] profile not found"
+        );
 
-this.profile = null;
+        this.profile = null;
+    },
 
     async createProfile() {
 
@@ -39,23 +40,17 @@ this.profile = null;
 
         this.profile = {
 
-            id:
-                crypto.randomUUID(),
+            id: crypto.randomUUID(),
 
-            username:
-                "anonymous",
+            username: "anonymous",
 
-            avatar:
-                "",
+            avatar: "",
 
-            publicKey:
-                "",
+            publicKey: "",
 
-            privateKey:
-                "",
+            privateKey: "",
 
-            createdAt:
-                Date.now()
+            createdAt: Date.now()
 
         };
 
@@ -96,8 +91,7 @@ this.profile = null;
 
     async setUsername(username) {
 
-        this.profile.username =
-            username;
+        this.profile.username = username;
 
         await this.saveProfile();
 
@@ -109,5 +103,4 @@ this.profile = null;
 
 };
 
-window.ProfileManager =
-    ProfileManager;
+window.ProfileManager = ProfileManager;
