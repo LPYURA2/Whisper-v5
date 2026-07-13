@@ -32,7 +32,7 @@ export const ProfileManager = {
         this.profile = null;
     },
 
-    async createProfile() {
+    async createProfile(username) {
 
         console.log(
             "[Profile] creating"
@@ -42,7 +42,8 @@ export const ProfileManager = {
 
             id: crypto.randomUUID(),
 
-            username: "anonymous",
+            username:
+                username,
 
             avatar: "",
 
