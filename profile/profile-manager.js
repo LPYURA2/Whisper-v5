@@ -1,4 +1,4 @@
-import { Storage } from '../storage/storage.js';
+import { Storage } from "../storage/storage.js";
 
 export const ProfileManager = {
 
@@ -6,14 +6,17 @@ export const ProfileManager = {
 
     async init() {
 
-        console.log("[Profile] init");
+        console.log(
+            "[Profile] init"
+        );
 
-        const savedProfile =
-            await Storage.get("profile");
+        const profile =
+            await Storage.loadProfile();
 
-        if (savedProfile) {
+        if (profile) {
 
-            this.profile = savedProfile;
+            this.profile =
+                profile;
 
             console.log(
                 "[Profile] loaded",
@@ -28,24 +31,31 @@ export const ProfileManager = {
 
     async createProfile() {
 
-        console.log("[Profile] creating");
+        console.log(
+            "[Profile] creating"
+        );
 
-        const profile = {
+        this.profile = {
 
-            id: crypto.randomUUID(),
+            id:
+                crypto.randomUUID(),
 
-            username: "anonymous",
+            username:
+                "anonymous",
 
-            avatar: "",
+            avatar:
+                "",
 
-            publicKey: "",
+            publicKey:
+                "",
 
-            privateKey: "",
+            privateKey:
+                "",
 
-            createdAt: Date.now()
+            createdAt:
+                Date.now()
+
         };
-
-        this.profile = profile;
 
         await this.saveProfile();
 
@@ -57,12 +67,24 @@ export const ProfileManager = {
 
     async saveProfile() {
 
-        await Storage.set(
-            "profile",
+        await Storage.saveProfile(
             this.profile
         );
 
-        console.log("[Profile] saved");
+        console.log(
+            "[Profile] saved"
+        );
+    },
+
+    async deleteProfile() {
+
+        await Storage.deleteProfile();
+
+        this.profile = null;
+
+        console.log(
+            "[Profile] deleted"
+        );
     },
 
     getProfile() {
@@ -70,8 +92,10 @@ export const ProfileManager = {
         return this.profile;
     },
 
-    async setUsername(username){
-        this.profile.username = username;
+    async setUsername(username) {
+
+        this.profile.username =
+            username;
 
         await this.saveProfile();
 
@@ -80,6 +104,8 @@ export const ProfileManager = {
             username
         );
     }
+
 };
 
-window.ProfileManager = ProfileManager;
+window.ProfileManager =
+    ProfileManager;
