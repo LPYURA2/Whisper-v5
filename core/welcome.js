@@ -1,3 +1,7 @@
+import { ProfileManager } from "../profile/profile-manager.js";
+import { UI } from "../ui/ui.js";
+import { UILayout } from "../ui/layout.js";
+
 export const Welcome = {
 
     show() {
@@ -30,6 +34,40 @@ export const Welcome = {
 
             </div>
         `;
+
+        const input =
+            document.getElementById(
+                "welcome-name"
+            );
+
+        const button =
+            document.getElementById(
+                "create-profile"
+            );
+
+        button.addEventListener(
+            "click",
+            async () => {
+
+                const name =
+                    input.value.trim();
+
+                if (!name) {
+                    return;
+                }
+
+                await ProfileManager.createProfile();
+
+                await ProfileManager.setUsername(
+                    name
+                );
+
+                UI.init();
+
+                UILayout.init();
+
+            }
+        );
     }
 
 };
