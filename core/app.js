@@ -25,12 +25,19 @@ async function bootstrap() {
 
     await Storage.init();
 
-    UI.init();
-    UILayout.init();
+    //UI.init();
+    //UILayout.init();
 
     await registerSW();
 
     await ProfileManager.init();
+
+    if (!ProfileManager.getProfile()) {
+
+    Welcome.show();
+
+    return;
+    }
 
     await KeyManager.init();
 
