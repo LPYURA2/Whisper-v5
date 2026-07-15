@@ -40,6 +40,41 @@ export const Storage = {
         localStorage.removeItem(
             "profile"
         );
+    },
+
+    /*
+     * ==========================
+     * CONTACTS
+     * ==========================
+     */
+
+    async saveContacts(contacts) {
+
+        localStorage.setItem(
+            "contacts",
+            JSON.stringify(contacts)
+        );
+    },
+
+    async loadContacts() {
+
+        const raw =
+            localStorage.getItem(
+                "contacts"
+            );
+
+        if (!raw) {
+            return [];
+        }
+
+        return JSON.parse(raw);
+    },
+
+    async deleteContacts() {
+
+        localStorage.removeItem(
+            "contacts"
+        );
     }
 
 };
