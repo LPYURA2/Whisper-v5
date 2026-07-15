@@ -21,6 +21,8 @@ export async function startMessenger() {
 
     await KeyManager.init();
 
+    await ContactManager.init();
+
     PeerManager.init();
 
     console.log(
