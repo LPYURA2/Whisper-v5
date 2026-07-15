@@ -79,27 +79,32 @@ export const Storage = {
 
     async saveChats(chats) {
 
-    await this.set(
+    localStorage.setItem(
         "chats",
-        chats
+        JSON.stringify(chats)
     );
 },
 
 async loadChats() {
 
-    return (
-        await this.get(
+    const raw =
+        localStorage.getItem(
             "chats"
-        )
-    ) || [];
+        );
+
+    if (!raw) {
+        return [];
+    }
+
+    return JSON.parse(raw);
 },
 
 async deleteChats() {
 
-    await this.remove(
+    localStorage.removeItem(
         "chats"
     );
-}
+},
 
 };
 
