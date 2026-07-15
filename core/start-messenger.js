@@ -5,6 +5,7 @@ import { KeyManager } from "../crypto/key-manager.js";
 
 import { PeerManager } from "../peers/peer-manager.js";
 import { ContactManager } from "../contacts/contact-manager.js";
+import { ChatManager } from "../chats/chat-manager.js";
 
 import { RTCManager } from "../network/rtc-manager.js";
 import { Signaling } from "../network/signaling.js";
@@ -22,6 +23,8 @@ export async function startMessenger() {
     await KeyManager.init();
 
     await ContactManager.init();
+
+    await ChatManager.init();
 
     PeerManager.init();
 
