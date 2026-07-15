@@ -118,13 +118,7 @@ addContactButton.addEventListener(
                 id.substring(0, 8)
         });
 
-        UI.renderContacts(
-            ContactManager.getContacts()
-        );
-
-        console.log(
-            "[UI] contact added"
-        );
+        UI.renderContacts();
 
         console.log(
             "[UI] contact added"
@@ -173,12 +167,10 @@ addContactButton.addEventListener(
         );
     },
 
-    renderContacts(contacts) {
+    renderContacts() {
 
-    const list =
-        document.querySelector(
-            ".peer-list"
-        );
+    const contacts =
+        ContactManager.getContacts();
 
     if (!list) {
         return;
