@@ -1,5 +1,7 @@
 import { Storage } from "../storage/storage.js";
 
+import { UI } from "../ui/ui.js";
+
 export const ContactManager = {
 
     contacts: [],
@@ -8,6 +10,8 @@ export const ContactManager = {
 
         this.contacts =
             await Storage.loadContacts();
+
+        UI.renderContacts();
 
         console.log(
             "[Contacts] loaded",
