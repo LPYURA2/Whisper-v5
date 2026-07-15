@@ -75,7 +75,31 @@ export const Storage = {
         localStorage.removeItem(
             "contacts"
         );
-    }
+    },
+
+    async saveChats(chats) {
+
+    await this.set(
+        "chats",
+        chats
+    );
+},
+
+async loadChats() {
+
+    return (
+        await this.get(
+            "chats"
+        )
+    ) || [];
+},
+
+async deleteChats() {
+
+    await this.remove(
+        "chats"
+    );
+}
 
 };
 
