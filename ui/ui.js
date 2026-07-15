@@ -172,6 +172,11 @@ addContactButton.addEventListener(
     const contacts =
         ContactManager.getContacts();
 
+    const list =
+        document.querySelector(
+            ".peer-list"
+        );
+
     if (!list) {
         return;
     }
