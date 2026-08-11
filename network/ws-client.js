@@ -148,38 +148,10 @@ export class WSClient {
 
                 this.peers = data.peers;
 
-                for (
-                    const peerId
-                    of data.peers
-                ) {
-
-                    const myId =
-                        ProfileManager
-                            .getProfile()
-                            .id;
-
-                    if (peerId === myId) {
-                        continue;
-                    }
-
-                    const existingConnection =
-                        RTCManager.getConnection(
-                            peerId
-                        );
-
-                    if (existingConnection) {
-                        continue;
-                    }
-
-                    RTCManager
-                        .createPeerConnection(
-                            peerId
-                        );
-                }
-
                 console.log(
                     "[WS] peers",
                     PeerManager.getPeers()
+
                 );
 
                 break;
@@ -224,15 +196,6 @@ export class WSClient {
                     "[WS] ANSWER received",
                     data
                 );
-
-                RTCManager.handleAnswer(
-                    data.from,
-                    data.answer
-                );
-
-                break;
-
-            
 
                 RTCManager.handleAnswer(
                     data.from,
