@@ -241,6 +241,11 @@ export const UI = {
                 console.log(
                     "[UI] contact added"
                 );
+                /* 
+                * После добавления контакта сразу начинаем попвтеу соединения
+                */
+
+                PeerManager.connect(id);
             }
         );
 
