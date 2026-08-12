@@ -1,46 +1,152 @@
 import { RTCManager } from "../network/rtc-manager.js";
 import { PeerManager } from "../peers/peer-manager.js";
 import { ContactManager } from "../contacts/contact-manager.js";
+import { ProfileManager } from "../profile/profile-manager.js";
 
 export const UI = {
 
     selectedContactId: null,
-    
+
     init() {
 
-        console.log('[UI] initialized');
+        console.log("[UI] initialized");
 
         const app =
             document.getElementById(
-                'app'
+                "app"
             );
 
+        const profile =
+            ProfileManager.getProfile();
+
+        if (!profile) {
+
+            console.error(
+                "[UI] profile not found"
+            );
+
+            return;
+        }
+
         app.innerHTML = `
+
             <div class="whisper-shell">
+
                 <aside class="sidebar">
+
                     <h2>Whisper</h2>
+
+                    <!-- PROFILE -->
+
+                    <div class="profile-block">
+
+                        <div class="profile-name">
+                            ${profile.username || "anonymous"}
+                        </div>
+
+                        <div class="profile-label">
+                            Whisper ID
+                        </div>
+
+                        <div class="profile-id">
+                            ${profile.id}
+                        </div>
+
+                        <button
+                            id="copy-profile-id"
+                            type="button"
+                        >
+                            Копировать ID
+                        </button>
+
+                    </div>
+
+                    <!-- CONTACTS -->
+
                     <div class="peer-list"></div>
 
-                    <button id="add-contact">
+                    <button
+                        id="add-contact"
+                        type="button"
+                    >
                         + Добавить контакт
                     </button>
+
                 </aside>
 
                 <main class="chat-window">
+
                     <div class="messages"></div>
 
                     <div class="input-bar">
+
                         <input
                             type="text"
                             placeholder="Введите сообщение..."
                         />
-                        <button>
+
+                        <button type="button">
                             Отправить
                         </button>
+
                     </div>
+
                 </main>
+
             </div>
         `;
+
+        /*
+         * ==========================
+         * COPY PROFILE ID
+         * ==========================
+         */
+
+        const copyProfileIdButton =
+            document.getElementById(
+                "copy-profile-id"
+            );
+
+        copyProfileIdButton.addEventListener(
+            "click",
+            async () => {
+
+                try {
+
+                    await navigator.clipboard.writeText(
+                        profile.id
+                    );
+
+                    copyProfileIdButton.textContent =
+                        "ID скопирован";
+
+                    setTimeout(() => {
+
+                        copyProfileIdButton.textContent =
+                            "Копировать ID";
+
+                    }, 1500);
+
+                    console.log(
+                        "[UI] profile ID copied"
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "[UI] failed to copy profile ID",
+                        error
+                    );
+
+                }
+            }
+        );
+
+        /*
+         * ==========================
+         * MESSAGE INPUT
+         * ==========================
+         */
 
         const input =
             document.querySelector(
@@ -81,54 +187,82 @@ export const UI = {
             }
         );
 
-       input.addEventListener(
-    "keydown",
-    (event) => {
+        input.addEventListener(
+            "keydown",
+            (event) => {
 
-        if (
-            event.key === "Enter"
-        ) {
+                if (
+                    event.key === "Enter"
+                ) {
 
-            button.click();
-        }
-    }
-);
+                    button.click();
+                }
+            }
+        );
 
-const addContactButton =
-    document.getElementById(
-        "add-contact"
-    );
+        /*
+         * ==========================
+         * ADD CONTACT
+         * ==========================
+         */
 
-addContactButton.addEventListener(
-    "click",
-    () => {
-
-        const id =
-            prompt(
-                "Введите Whisper ID"
+        const addContactButton =
+            document.getElementById(
+                "add-contact"
             );
 
-        if (!id) {
-            return;
-        }
+        addContactButton.addEventListener(
+            "click",
+            () => {
 
-        ContactManager.addContact({
-            id,
-            name:
-                id.substring(0, 8)
-        });
+                const id =
+                    prompt(
+                        "Введите Whisper ID"
+                    );
+
+                if (!id) {
+                    return;
+                }
+
+                ContactManager.addContact({
+
+                    id,
+
+                    name:
+                        id.substring(
+                            0,
+                            8
+                        )
+
+                });
+
+                UI.renderContacts();
+
+                console.log(
+                    "[UI] contact added"
+                );
+            }
+        );
+
+        /*
+         * ==========================
+         * INITIAL CONTACTS
+         * ==========================
+         */
 
         UI.renderContacts();
+    },
 
-        console.log(
-            "[UI] contact added"
-        );
-    }
-);
+    /*
+     * ==========================
+     * MESSAGES
+     * ==========================
+     */
 
-},
-
-    addMessage(text, own = false) {
+    addMessage(
+        text,
+        own = false
+    ) {
 
         console.log(
             "[UI] addMessage",
@@ -167,52 +301,80 @@ addContactButton.addEventListener(
         );
     },
 
+    /*
+     * ==========================
+     * CONTACTS
+     * ==========================
+     */
+
     renderContacts() {
 
-    const contacts =
-        ContactManager.getContacts();
+        const contacts =
+            ContactManager.getContacts();
 
-    const list =
-        document.querySelector(
-            ".peer-list"
-        );
-
-    if (!list) {
-        return;
-    }
-
-    list.innerHTML = "";
-
-    for (const contact of contacts) {
-
-        const div =
-            document.createElement(
-                "div"
+        const list =
+            document.querySelector(
+                ".peer-list"
             );
 
-        div.className =
-            "contact-item";
+        if (!list) {
+            return;
+        }
 
-        div.textContent =
-            contact.name;
+        list.innerHTML = "";
 
-        div.addEventListener(
-            "click",
-            () => {
+        for (
+            const contact
+            of contacts
+        ) {
 
-                UI.selectedContactId =
-                    contact.id;
+            const div =
+                document.createElement(
+                    "div"
+                );
 
-                console.log(
-                    "[UI] active chat",
-                    contact.id
+            div.className =
+                "contact-item";
+
+            div.textContent =
+                contact.name;
+
+            /*
+             * ACTIVE CHAT
+             */
+
+            if (
+                contact.id ===
+                UI.selectedContactId
+            ) {
+
+                div.classList.add(
+                    "active"
                 );
             }
-        );
 
-        list.appendChild(div);
+            div.addEventListener(
+                "click",
+                () => {
+
+                    UI.selectedContactId =
+                        contact.id;
+
+                    console.log(
+                        "[UI] active chat",
+                        contact.id
+                    );
+
+                    UI.renderContacts();
+                }
+            );
+
+            list.appendChild(
+                div
+            );
+        }
     }
-}
+
 };
 
 window.UI = UI;
