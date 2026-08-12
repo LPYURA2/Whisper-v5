@@ -1,129 +1,206 @@
-import { ProfileManager } from '../profile/profile-manager.js';
-import { RTCManager } from '../network/rtc-manager.js';
+import { ProfileManager } from "../profile/profile-manager.js";
+import { RTCManager } from "../network/rtc-manager.js";
 
 export const PeerManager = {
 
     peers: [],
 
+    connections: new Map(),
+
     init() {
 
         console.log(
-            '[PeerManager] init'
+            "[PeerManager] init"
         );
     },
 
     updatePeers(peers) {
 
-        const myProfile =
+        const profile =
             ProfileManager.getProfile();
 
+        if (!profile) {
+
+            console.error(
+                "[PeerManager] profile not found"
+            );
+
+            return;
+        }
+
         const myId =
-            myProfile.id;
+            profile.id;
 
         this.peers =
             peers.filter(
-                (peerId) =>
+                peerId =>
                     peerId !== myId
             );
 
         console.log(
-            '[PeerManager] peers updated',
+            "[PeerManager] peers updated",
             this.peers
         );
+
+        /*
+         * Discovery сообщает только о том,
+         * какие PeerID сейчас находятся
+         * на signaling-сервере.
+         *
+         * Само создание соединения
+         * теперь выполняется через connect().
+         */
 
         for (
             const peerId
             of this.peers
         ) {
 
-            this.connect(
-                peerId
-            );
+            /*
+             * Если контакт уже известен
+             * и мы должны автоматически
+             * поддерживать соединение,
+             * connect() сам решит,
+             * нужно ли его создавать.
+             *
+             * Пока не создаём соединения
+             * со всеми обнаруженными peers.
+             */
         }
     },
 
-    connect(peerId) {
+    async connect(peerId) {
 
-        const localId =
+        if (!peerId) {
+
+            console.error(
+                "[PeerManager] invalid peerId"
+            );
+
+            return;
+        }
+
+        const myId =
             ProfileManager
                 .getProfile()
                 .id;
 
-        if (!peerId) {
+        if (peerId === myId) {
+
+            console.log(
+                "[PeerManager] cannot connect to self"
+            );
+
             return;
         }
 
-        if (peerId === localId) {
-            return;
-        }
+        /*
+         * Уже есть рабочее соединение?
+         */
 
-        console.log(
-            '[PeerManager] connect request',
-            peerId
-        );
-
-        const existingConnection =
+        const existing =
             RTCManager.getConnection(
                 peerId
             );
 
-        if (existingConnection) {
+        if (existing) {
+
+            const state =
+                existing.connectionState;
 
             console.log(
-                '[PeerManager] connection already exists',
+                "[PeerManager] existing connection",
+                peerId,
+                state
+            );
+
+            if (
+                state === "connected" ||
+                state === "connecting" ||
+                state === "new"
+            ) {
+
+                console.log(
+                    "[PeerManager] connection already active",
+                    peerId
+                );
+
+                return existing;
+            }
+        }
+
+        /*
+         * Определяем инициатора.
+         *
+         * Пока используем deterministic rule,
+         * чтобы обе стороны не создавали offer.
+         *
+         * Позже это заменим пользовательской
+         * моделью "тот, кто добавил контакт".
+         */
+
+        const shouldInitiate =
+            myId.localeCompare(
+                peerId
+            ) < 0;
+
+        console.log(
+            "[PeerManager] connect",
+            peerId
+        );
+
+        console.log(
+            "[PeerManager] localId",
+            myId
+        );
+
+        console.log(
+            "[PeerManager] peerId",
+            peerId
+        );
+
+        console.log(
+            "[PeerManager] initiator",
+            shouldInitiate
+        );
+
+        /*
+         * Создаём единственное
+         * RTCPeerConnection.
+         */
+
+        const connection =
+            RTCManager.createPeerConnection(
+                peerId
+            );
+
+        if (!connection) {
+
+            console.error(
+                "[PeerManager] failed to create connection",
                 peerId
             );
 
             return;
         }
 
-        console.log(
-            '[PeerManager] creating connection',
-            peerId
-        );
+        /*
+         * Только инициатор создаёт offer.
+         */
 
-        RTCManager.createPeerConnection(
-            peerId
-        );
-
-        const comparison =
-            localId.localeCompare(
-                peerId
-            );
-
-        console.log(
-            '[PeerManager] localId',
-            localId
-        );
-
-        console.log(
-            '[PeerManager] peerId',
-            peerId
-        );
-
-        console.log(
-            '[PeerManager] compare',
-            comparison
-        );
-
-        if (comparison < 0) {
+        if (shouldInitiate) {
 
             console.log(
-                '[PeerManager] initiator',
+                "[PeerManager] creating offer",
                 peerId
             );
 
-            RTCManager.createOffer(
-                peerId
-            );
-
-        } else {
-
-            console.log(
-                '[PeerManager] waiting for offer',
+            await RTCManager.createOffer(
                 peerId
             );
         }
+
+        return connection;
     },
 
     getPeers() {
