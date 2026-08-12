@@ -7,61 +7,124 @@ export const PeerManager = {
 
     init() {
 
-        console.log('[PeerManager] init');
+        console.log(
+            '[PeerManager] init'
+        );
     },
 
     updatePeers(peers) {
 
-    const myProfile =
-        ProfileManager.getProfile();
+        const myProfile =
+            ProfileManager.getProfile();
 
-    const myId = myProfile.id;
+        const myId =
+            myProfile.id;
 
-    this.peers = peers.filter(
-        (peerId) => peerId !== myId
-    );
+        this.peers =
+            peers.filter(
+                (peerId) =>
+                    peerId !== myId
+            );
 
-    console.log(
-        '[PeerManager] peers updated',
-        this.peers
-    );
+        console.log(
+            '[PeerManager] peers updated',
+            this.peers
+        );
 
-    const localId = window.ProfileManager.profile.id;
+        for (
+            const peerId
+            of this.peers
+        ) {
 
-    for (const peerId of this.peers) {
+            this.connect(
+                peerId
+            );
+        }
+    },
+
+    connect(peerId) {
+
+        const localId =
+            ProfileManager
+                .getProfile()
+                .id;
+
+        if (!peerId) {
+            return;
+        }
 
         if (peerId === localId) {
-            continue;
+            return;
         }
 
         console.log(
-            "[PeerManager] localId",
-            localId
-        );
-
-        console.log(
-            "[PeerManager] peerId",
+            '[PeerManager] connect request',
             peerId
         );
 
+        const existingConnection =
+            RTCManager.getConnection(
+                peerId
+            );
+
+        if (existingConnection) {
+
+            console.log(
+                '[PeerManager] connection already exists',
+                peerId
+            );
+
+            return;
+        }
+
         console.log(
-            "[PeerManager] compare",
-            localId.localeCompare(peerId)
+            '[PeerManager] creating connection',
+            peerId
         );
 
         RTCManager.createPeerConnection(
             peerId
         );
 
-        if (localId.localeCompare(peerId) < 0)
-        {
-            RTCManager.createOffer(
+        const comparison =
+            localId.localeCompare(
+                peerId
+            );
+
+        console.log(
+            '[PeerManager] localId',
+            localId
+        );
+
+        console.log(
+            '[PeerManager] peerId',
             peerId
         );
-    }
-}
-        
-},
+
+        console.log(
+            '[PeerManager] compare',
+            comparison
+        );
+
+        if (comparison < 0) {
+
+            console.log(
+                '[PeerManager] initiator',
+                peerId
+            );
+
+            RTCManager.createOffer(
+                peerId
+            );
+
+        } else {
+
+            console.log(
+                '[PeerManager] waiting for offer',
+                peerId
+            );
+        }
+    },
 
     getPeers() {
 
