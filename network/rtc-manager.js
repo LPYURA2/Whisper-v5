@@ -1,6 +1,7 @@
 console.log("[RTC] NEW VERSION LOADED");
 
 import { UI } from "../ui/ui.js";
+import { ProfileManager } from "../profile/profile-manager.js";
 
 export const RTCManager = {
 
@@ -17,25 +18,48 @@ export const RTCManager = {
         );
     },
 
-    
-
     createPeerConnection(peerId) {
 
-    console.log(
-        "[RTCManager] creating connection",
-        peerId
-    );
+        console.log(
+            "[RTCManager] creating connection",
+            peerId
+        );
 
-    const connection =
-        new RTCPeerConnection({
+        /*
+         * ==========================
+         * PREVENT DUPLICATE CONNECTION
+         * ==========================
+         */
 
-            iceServers: [
-                {
-                    urls:
-                    "stun:stun.l.google.com:19302"
-                }
-            ]
-        });
+        const existingConnection =
+            this.connections.get(peerId);
+
+        if (existingConnection) {
+
+            console.log(
+                "[RTCManager] connection already exists",
+                peerId
+            );
+
+            return existingConnection;
+        }
+
+        /*
+         * ==========================
+         * CREATE PEER CONNECTION
+         * ==========================
+         */
+
+        const connection =
+            new RTCPeerConnection({
+
+                iceServers: [
+                    {
+                        urls:
+                            "stun:stun.l.google.com:19302"
+                    }
+                ]
+            });
 
         this.connections.set(
             peerId,
@@ -47,227 +71,278 @@ export const RTCManager = {
             peerId
         );
 
-    connection.onicecandidate =
-    (event) => {
+        /*
+         * ==========================
+         * ICE CANDIDATES
+         * ==========================
+         */
 
-        if (event.candidate) {
+        connection.onicecandidate =
+            (event) => {
 
-            console.log(
-                "[RTC] ICE candidate",
-                JSON.stringify(
-                    event.candidate)
+                if (event.candidate) {
+
+                    console.log(
+                        "[RTC] ICE candidate",
+                        JSON.stringify(
+                            event.candidate
+                        )
+                    );
+
+                    window.wsClient.send({
+
+                        type:
+                            "ice-candidate",
+
+                        target:
+                            peerId,
+
+                        from:
+                            ProfileManager
+                                .getProfile()
+                                .id,
+
+                        candidate:
+                            event.candidate
+                    });
+
+                } else {
+
+                    console.log(
+                        "[RTC] ICE gathering complete"
+                    );
+                }
+            };
+
+        /*
+         * ==========================
+         * DATA CHANNEL
+         * ==========================
+         *
+         * Пока сохраняем текущую
+         * логику. Разделение initiator /
+         * receiver сделаем следующим шагом.
+         */
+
+        const channel =
+            connection.createDataChannel(
+                "chat"
             );
-
-            window.wsClient.send( {
-                type: "ice-candidate",
-                target: peerId,
-                from: window.ProfileManager.profile.id,
-                candidate: event.candidate
-            });
-
-        } else {
-
-            console.log(
-                "[RTC] ICE gathering complete"
-            );
-        }
-    };
-
-    const channel =
-        connection.createDataChannel(
-            "chat"
-        );
-
-    this.channels.set(
-        peerId,
-        channel
-    );
-
-    channel.onopen = () => {
-
-        console.log(
-            "[RTC] data channel open",
-            peerId
-        );
-    };
-
-    channel.onmessage = (event) => {
-
-    try {
-
-        const packet =
-            JSON.parse(event.data);
-
-        console.log(
-            "[RTC] packet received",
-            peerId,
-            packet
-        );
-
-        window.UI.addMessage(
-            packet.text,
-            false
-        );
-
-    } catch (err) {
-
-        console.error(
-            "[RTC] invalid packet",
-            err
-        );
-    }
-};
-
-connection.ondatachannel =
-    (event) => {
-
-        const incomingChannel =
-            event.channel;
 
         this.channels.set(
             peerId,
-            incomingChannel
+            channel
         );
 
-        incomingChannel.onopen =
-            () => {
+        channel.onopen = () => {
 
-                console.log(
-                    "[RTC] incoming channel open",
-                    peerId
-                );
+            console.log(
+                "[RTC] data channel open",
+                peerId
+            );
+        };
+
+        channel.onmessage =
+            (event) => {
+
+                try {
+
+                    const packet =
+                        JSON.parse(
+                            event.data
+                        );
+
+                    console.log(
+                        "[RTC] packet received",
+                        peerId,
+                        packet
+                    );
+
+                    UI.addMessage(
+                        packet.text,
+                        false
+                    );
+
+                } catch (err) {
+
+                    console.error(
+                        "[RTC] invalid packet",
+                        err
+                    );
+                }
             };
 
-incomingChannel.onmessage = (event) => {
+        /*
+         * ==========================
+         * INCOMING DATA CHANNEL
+         * ==========================
+         */
 
-    console.log(
-        "WHISPER TEST"
-    );
+        connection.ondatachannel =
+            (event) => {
 
-    try {
+                const incomingChannel =
+                    event.channel;
 
-        const packet =
-            JSON.parse(event.data);
+                this.channels.set(
+                    peerId,
+                    incomingChannel
+                );
+
+                incomingChannel.onopen =
+                    () => {
+
+                        console.log(
+                            "[RTC] incoming channel open",
+                            peerId
+                        );
+                    };
+
+                incomingChannel.onmessage =
+                    (event) => {
+
+                        console.log(
+                            "WHISPER TEST"
+                        );
+
+                        try {
+
+                            const packet =
+                                JSON.parse(
+                                    event.data
+                                );
+
+                            console.log(
+                                "[RTC] packet received",
+                                peerId,
+                                packet
+                            );
+
+                            console.log(
+                                "[RTC] UI object",
+                                UI
+                            );
+
+                            console.log(
+                                "[RTC] FORCE MESSAGE"
+                            );
+
+                            UI.addMessage(
+                                packet.text,
+                                false
+                            );
+
+                            console.log(
+                                "[RTC] UI MESSAGE ADDED"
+                            );
+
+                        } catch (err) {
+
+                            console.error(
+                                "[RTC] incoming handler failed",
+                                err
+                            );
+                        }
+                    };
+            };
 
         console.log(
-            "[RTC] packet received",
-            peerId,
-            packet
+            "[RTCManager] connection ready",
+            peerId
         );
 
-        console.log(
-            "[RTC] UI object",
-            UI
+        return connection;
+    },
+
+    getConnection(peerId) {
+
+        return this.connections.get(
+            peerId
         );
+    },
 
-        console.log(
-            "[RTC] FORCE MESSAGE"
-        );
+    async createOffer(peerId) {
 
-        UI.addMessage(
-            packet.text,
-            false
-        );
+        try {
 
-        console.log(
-            "[RTC] UI MESSAGE ADDED"
-        );
+            const connection =
+                this.getConnection(
+                    peerId
+                );
 
-    } catch (err) {
+            if (!connection) {
 
-        console.error(
-            "[RTC] incoming handler failed",
-            err
-        );
-    }
-};
-    };
-this.connections.set(
-    peerId,
-    connection
-);
+                console.error(
+                    "[RTC] no connection",
+                    peerId
+                );
 
-console.log(
-    "[RTCManager] connection created",
-    peerId
-);
+                return null;
+            }
 
-return connection;
-},
+            console.log(
+                "[RTC] creating offer",
+                peerId
+            );
 
-getConnection(peerId) {
+            const offer =
+                await connection.createOffer();
 
-    return this.connections.get(peerId);
-},
+            console.log(
+                "[RTC] offer created"
+            );
 
-async createOffer(peerId) {
+            await connection.setLocalDescription(
+                offer
+            );
 
-    try {
+            console.log(
+                "[RTC] local description set"
+            );
 
-        const connection =
-            this.getConnection(peerId);
+            window.wsClient.send({
 
-        if (!connection) {
+                type:
+                    "offer",
+
+                target:
+                    peerId,
+
+                from:
+                    ProfileManager
+                        .getProfile()
+                        .id,
+
+                offer:
+                    connection.localDescription
+            });
+
+            console.log(
+                "[RTC] offer sent"
+            );
+
+            return offer;
+
+        } catch (error) {
 
             console.error(
-                "[RTC] no connection",
-                peerId
+                "[RTC] createOffer failed",
+                error
             );
 
             return null;
         }
+    },
 
-        console.log(
-            "[RTC] creating offer",
-            peerId
-        );
-
-        const offer =
-            await connection.createOffer();
-
-        console.log(
-            "[RTC] offer created"
-        );
-
-        await connection.setLocalDescription(
-            offer
-        );
-
-        console.log(
-            "[RTC] local description set"
-        );
-
-        window.wsClient.send({
-            type: "offer",
-            target: peerId,
-            from: window.ProfileManager.profile.id,
-            offer:
-                connection.localDescription
-        });
-
-        console.log(
-            "[RTC] offer sent"
-        );
-
-        return offer;
-
-    } catch (error) {
-
-        console.error(
-            "[RTC] createOffer failed",
-            error
-        );
-
-        return null;
-    }
-},
     async setRemoteDescription(
         peerId,
         sdp
     ) {
 
         const connection =
-            this.getConnection(peerId);
+            this.getConnection(
+                peerId
+            );
 
         if (!connection) {
 
@@ -293,7 +368,9 @@ async createOffer(peerId) {
     async createAnswer(peerId) {
 
         const connection =
-            this.getConnection(peerId);
+            this.getConnection(
+                peerId
+            );
 
         if (!connection) {
 
@@ -322,9 +399,18 @@ async createOffer(peerId) {
         );
 
         window.wsClient.send({
-            type: "answer",
-            target: peerId,
-            from: window.ProfileManager.profile.id,
+
+            type:
+                "answer",
+
+            target:
+                peerId,
+
+            from:
+                ProfileManager
+                    .getProfile()
+                    .id,
+
             answer:
                 connection.localDescription
         });
@@ -347,7 +433,9 @@ async createOffer(peerId) {
         );
 
         let connection =
-            this.getConnection(peerId);
+            this.getConnection(
+                peerId
+            );
 
         if (!connection) {
 
@@ -394,7 +482,9 @@ async createOffer(peerId) {
     ) {
 
         const connection =
-            this.getConnection(peerId);
+            this.getConnection(
+                peerId
+            );
 
         if (!connection) {
 
@@ -433,54 +523,76 @@ async createOffer(peerId) {
         );
     },
 
-    sendMessage(peerId, text) {
-
-    const channel =
-        this.channels.get(peerId);
-
-    if (!channel) {
-
-        console.error(
-            "[RTC] no channel",
-            peerId
-        );
-
-        return;
-    }
-
-    if (channel.readyState !== "open") {
-
-        console.error(
-            "[RTC] channel not open",
-            peerId
-        );
-
-        return;
-    }
-
-    const packet = {
-        type: "chat",
-        id: crypto.randomUUID(),
-        timestamp: Date.now(),
-        from: ProfileManager.profile.id,
+    sendMessage(
+        peerId,
         text
-    };
+    ) {
 
-    channel.send(
-        JSON.stringify(packet)
-    );
+        const channel =
+            this.channels.get(
+                peerId
+            );
 
-    UI.addMessage(
-        text,
-        true
-    );
+        if (!channel) {
 
-    console.log(
-        "[RTC] message sent",
-        packet
-    );
-}
+            console.error(
+                "[RTC] no channel",
+                peerId
+            );
+
+            return;
+        }
+
+        if (
+            channel.readyState !==
+            "open"
+        ) {
+
+            console.error(
+                "[RTC] channel not open",
+                peerId
+            );
+
+            return;
+        }
+
+        const packet = {
+
+            type:
+                "chat",
+
+            id:
+                crypto.randomUUID(),
+
+            timestamp:
+                Date.now(),
+
+            from:
+                ProfileManager
+                    .getProfile()
+                    .id,
+
+            text
+        };
+
+        channel.send(
+            JSON.stringify(
+                packet
+            )
+        );
+
+        UI.addMessage(
+            text,
+            true
+        );
+
+        console.log(
+            "[RTC] message sent",
+            packet
+        );
+    }
 
 };
 
-window.RTCManager = RTCManager;
+window.RTCManager =
+    RTCManager;
