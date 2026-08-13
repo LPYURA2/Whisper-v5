@@ -1,6 +1,5 @@
-import { PeerManager } from '../peers/peer-manager.js';
-import { ProfileManager } from '../profile/profile-manager.js';
-import { RTCManager } from './rtc-manager.js';
+import { PeerManager } from "../peers/peer-manager.js";
+import { RTCManager } from "./rtc-manager.js";
 
 const SIGNAL_SERVER =
     "wss://whisper-signaling.onrender.com";
@@ -9,37 +8,69 @@ export class WSClient {
 
     constructor() {
 
-        this.url = null;
-
         this.socket = null;
 
         this.connected = false;
 
-        this.peerId = window.ProfileManager.profile.id;
+        this.peerId =
+            window.ProfileManager.profile.id;
 
         this.peers = [];
 
         this.reconnectDelay = 3000;
+
+        this.reconnectTimer = null;
     }
 
     connect() {
 
-        console.log("[WS] connecting...");
+        // Не создаём второе WebSocket-соединение,
+        // если текущее уже подключено или подключается.
+        if (
+            this.socket &&
+            (
+                this.socket.readyState === WebSocket.OPEN ||
+                this.socket.readyState === WebSocket.CONNECTING
+            )
+        ) {
 
-        this.socket =
-            new WebSocket(SIGNAL_SERVER);
+            console.log(
+                "[WS] connection already exists"
+            );
 
-        this.socket.addEventListener(
+            return;
+        }
+
+        console.log(
+            "[WS] connecting..."
+        );
+
+        const socket =
+            new WebSocket(
+                SIGNAL_SERVER
+            );
+
+        this.socket = socket;
+
+        socket.addEventListener(
             "open",
             () => {
 
+                // Игнорируем событие старого socket,
+                // если уже создан новый.
+                if (this.socket !== socket) {
+                    return;
+                }
+
                 this.connected = true;
 
-                console.log("[WS] connected");
+                console.log(
+                    "[WS] connected"
+                );
 
                 console.log(
                     "[WS] state",
-                    this.socket.readyState
+                    socket.readyState
                 );
 
                 this.send({
@@ -49,7 +80,7 @@ export class WSClient {
             }
         );
 
-        this.socket.addEventListener(
+        socket.addEventListener(
             "message",
             (event) => {
 
@@ -61,14 +92,18 @@ export class WSClient {
                 try {
 
                     const data =
-                        JSON.parse(event.data);
+                        JSON.parse(
+                            event.data
+                        );
 
                     console.log(
                         "[WS] message",
                         data
                     );
 
-                    this.handleMessage(data);
+                    this.handleMessage(
+                        data
+                    );
 
                 } catch (err) {
 
@@ -80,9 +115,15 @@ export class WSClient {
             }
         );
 
-        this.socket.addEventListener(
+        socket.addEventListener(
             "close",
             () => {
+
+                // Старый socket не должен
+                // ломать состояние нового.
+                if (this.socket !== socket) {
+                    return;
+                }
 
                 this.connected = false;
 
@@ -90,15 +131,13 @@ export class WSClient {
                     "[WS] disconnected"
                 );
 
-                setTimeout(() => {
+                this.socket = null;
 
-                    this.connect();
-
-                }, this.reconnectDelay);
+                this.scheduleReconnect();
             }
         );
 
-        this.socket.addEventListener(
+        socket.addEventListener(
             "error",
             (err) => {
 
@@ -110,15 +149,68 @@ export class WSClient {
         );
     }
 
-    send(data) {
+    scheduleReconnect() {
 
-        if (!this.connected) {
+        if (this.reconnectTimer) {
             return;
         }
 
-        this.socket.send(
-            JSON.stringify(data)
+        console.log(
+            "[WS] reconnect scheduled in",
+            this.reconnectDelay,
+            "ms"
         );
+
+        this.reconnectTimer =
+            setTimeout(
+                () => {
+
+                    this.reconnectTimer =
+                        null;
+
+                    this.connect();
+
+                },
+                this.reconnectDelay
+            );
+    }
+
+    send(data) {
+
+        if (
+            !this.socket ||
+            this.socket.readyState !== WebSocket.OPEN
+        ) {
+
+            console.error(
+                "[WS] socket not connected"
+            );
+
+            return false;
+        }
+
+        console.log(
+            "[WS] sending",
+            data
+        );
+
+        try {
+
+            this.socket.send(
+                JSON.stringify(data)
+            );
+
+            return true;
+
+        } catch (err) {
+
+            console.error(
+                "[WS] send failed",
+                err
+            );
+
+            return false;
+        }
     }
 
     handleMessage(data) {
@@ -131,7 +223,8 @@ export class WSClient {
                     "[WS] server welcome"
                 );
 
-                window.ClientId = data.id;
+                window.ClientId =
+                    data.id;
 
                 console.log(
                     "[WS] local client id",
@@ -140,41 +233,35 @@ export class WSClient {
 
                 break;
 
+
             case "peers":
 
-                PeerManager.updatePeers(
+                console.log(
+                    "[WS] peers received",
                     data.peers
                 );
 
-                this.peers = data.peers;
-
-                console.log(
-                    "[WS] peers",
-                    PeerManager.getPeers()
-
-                );
-
-                break;
-
-            case "message":
-
-                console.log(
-                    "[MESSAGE]",
-                    data.from,
-                    ":",
-                    data.text
-                );
-
-                window.dispatchEvent(
-                    new CustomEvent(
-                        "ws-message",
-                        {
-                            detail: data
-                        }
+                this.peers =
+                    Array.isArray(
+                        data.peers
                     )
+                        ? data.peers
+                        : [];
+
+                // WSClient только передаёт
+                // список PeerManager.
+                // Он сам НЕ создаёт RTC.
+                PeerManager.updatePeers(
+                    this.peers
+                );
+
+                console.log(
+                    "[WS] PeerManager peers",
+                    PeerManager.getPeers()
                 );
 
                 break;
+
 
             case "offer":
 
@@ -182,13 +269,14 @@ export class WSClient {
                     "[WS] OFFER received",
                     data
                 );
-                
+
                 RTCManager.handleOffer(
                     data.from,
                     data.offer
                 );
 
                 break;
+
 
             case "answer":
 
@@ -204,10 +292,12 @@ export class WSClient {
 
                 break;
 
+
             case "ice-candidate":
 
                 console.log(
                     "[WS] ICE candidate received",
+                    data
                 );
 
                 RTCManager.handleCandidate(
@@ -217,68 +307,39 @@ export class WSClient {
 
                 break;
 
+
+            case "message":
+
+                // Старый WebSocket relay
+                // пока оставляем для совместимости.
+                // Основной транспорт Whisper —
+                // WebRTC DataChannel.
+
+                console.log(
+                    "[WS] relay message received",
+                    data
+                );
+
+                window.dispatchEvent(
+                    new CustomEvent(
+                        "ws-message",
+                        {
+                            detail: data
+                        }
+                    )
+                );
+
+                break;
+
+
             default:
 
                 console.log(
                     "[WS] unknown message",
                     data
                 );
-            }
-    }
-
-    send(data) {
-
-    if (
-        !this.socket ||
-        this.socket.readyState !== WebSocket.OPEN
-    ) {
-
-        console.error(
-            "[WS] socket not connected"
-        );
-
-        return;
-    }
-
-    console.log(
-        "[WS] sending",
-        data
-    );
-
-    this.socket.send(
-        JSON.stringify(data)
-    );
-}
-
-    sendMessage(text) {
-
-        if (
-            !this.peers ||
-            this.peers.length === 0
-        ) {
-
-            console.log(
-                "[WS] no peers"
-            );
-
-            return;
         }
-
-        const targetPeer =
-            this.peers[0];
-
-        this.send({
-            type: "message",
-            to: targetPeer,
-            from: this.peerId,
-            text
-        });
-
-        console.log(
-            "[WS] sent message:",
-            text
-        );
     }
-};
+}
 
 window.WSClient = WSClient;
