@@ -11,6 +11,18 @@ export const RTCManager = {
 
     channels: new Map(),
 
+    /*
+     * ICE candidates, которые пришли до того,
+     * как появился RTCPeerConnection.
+     */
+    pendingCandidates: new Map(),
+
+    /*
+     * ICE candidates, которые пришли после создания
+     * connection, но до setRemoteDescription().
+     */
+    candidateQueues: new Map(),
+
     init() {
 
         console.log(
@@ -18,17 +30,22 @@ export const RTCManager = {
         );
     },
 
+    /*
+     * =========================================================
+     * CREATE PEER CONNECTION
+     * =========================================================
+     */
+
     createPeerConnection(peerId) {
 
         console.log(
-            "[RTCManager] creating connection",
+            "[RTCManager] createPeerConnection",
             peerId
         );
 
         /*
-         * ==========================
-         * PREVENT DUPLICATE CONNECTION
-         * ==========================
+         * Не создаём второй RTCPeerConnection
+         * для одного PeerID.
          */
 
         const existingConnection =
@@ -45,19 +62,52 @@ export const RTCManager = {
         }
 
         /*
-         * ==========================
-         * CREATE PEER CONNECTION
-         * ==========================
+         * =====================================================
+         * DETERMINE INITIATOR
+         * =====================================================
+         *
+         * Правило остаётся тем же:
+         *
+         * localId < remoteId
+         *        ↓
+         *     initiator
+         *
+         * Initiator создаёт DataChannel.
+         * Receiver только принимает его.
+         */
+
+        const localId =
+            ProfileManager
+                .getProfile()
+                .id;
+
+        const isInitiator =
+            localId.localeCompare(peerId) < 0;
+
+        console.log(
+            "[RTC] role",
+            peerId,
+            isInitiator
+                ? "INITIATOR"
+                : "RECEIVER"
+        );
+
+        /*
+         * =====================================================
+         * CREATE RTCPeerConnection
+         * =====================================================
          */
 
         const connection =
             new RTCPeerConnection({
 
                 iceServers: [
+
                     {
                         urls:
                             "stun:stun.l.google.com:19302"
                     }
+
                 ]
             });
 
@@ -66,15 +116,121 @@ export const RTCManager = {
             connection
         );
 
+        /*
+         * Создаём очередь ICE для этого connection.
+         */
+
+        if (
+            !this.candidateQueues.has(
+                peerId
+            )
+        ) {
+
+            this.candidateQueues.set(
+                peerId,
+                []
+            );
+        }
+
         console.log(
-            "[RTCManager] connection created",
+            "[RTC] connection created",
             peerId
         );
 
         /*
-         * ==========================
-         * ICE CANDIDATES
-         * ==========================
+         * =====================================================
+         * WEBRTC STATE LOGGING
+         * =====================================================
+         */
+
+        connection.onsignalingstatechange =
+            () => {
+
+                console.log(
+                    "[RTC] signalingState",
+                    peerId,
+                    connection.signalingState
+                );
+            };
+
+        connection.onicegatheringstatechange =
+            () => {
+
+                console.log(
+                    "[RTC] iceGatheringState",
+                    peerId,
+                    connection.iceGatheringState
+                );
+            };
+
+        connection.oniceconnectionstatechange =
+            () => {
+
+                console.log(
+                    "[RTC] iceConnectionState",
+                    peerId,
+                    connection.iceConnectionState
+                );
+            };
+
+        connection.onconnectionstatechange =
+            () => {
+
+                console.log(
+                    "[RTC] connectionState",
+                    peerId,
+                    connection.connectionState
+                );
+
+                if (
+                    connection.connectionState ===
+                    "connected"
+                ) {
+
+                    console.log(
+                        "[RTC] CONNECTED",
+                        peerId
+                    );
+                }
+
+                if (
+                    connection.connectionState ===
+                    "failed"
+                ) {
+
+                    console.warn(
+                        "[RTC] CONNECTION FAILED",
+                        peerId
+                    );
+                }
+
+                if (
+                    connection.connectionState ===
+                    "disconnected"
+                ) {
+
+                    console.warn(
+                        "[RTC] CONNECTION DISCONNECTED",
+                        peerId
+                    );
+                }
+
+                if (
+                    connection.connectionState ===
+                    "closed"
+                ) {
+
+                    console.warn(
+                        "[RTC] CONNECTION CLOSED",
+                        peerId
+                    );
+                }
+            };
+
+        /*
+         * =====================================================
+         * ICE CANDIDATE
+         * =====================================================
          */
 
         connection.onicecandidate =
@@ -83,64 +239,288 @@ export const RTCManager = {
                 if (event.candidate) {
 
                     console.log(
-                        "[RTC] ICE candidate",
-                        JSON.stringify(
-                            event.candidate
-                        )
+                        "[RTC] ICE candidate generated",
+                        peerId
                     );
 
-                    window.wsClient.send({
+                    const sent =
+                        window.wsClient.send({
 
-                        type:
-                            "ice-candidate",
+                            type:
+                                "ice-candidate",
 
-                        target:
-                            peerId,
+                            target:
+                                peerId,
 
-                        from:
-                            ProfileManager
-                                .getProfile()
-                                .id,
+                            from:
+                                localId,
 
-                        candidate:
-                            event.candidate
-                    });
+                            candidate:
+                                event.candidate
+                        });
+
+                    if (!sent) {
+
+                        console.warn(
+                            "[RTC] ICE candidate could not be sent",
+                            peerId
+                        );
+                    }
 
                 } else {
 
                     console.log(
-                        "[RTC] ICE gathering complete"
+                        "[RTC] ICE gathering complete",
+                        peerId
                     );
                 }
             };
 
         /*
-         * ==========================
-         * DATA CHANNEL
-         * ==========================
+         * =====================================================
+         * INCOMING DATA CHANNEL
+         * =====================================================
          *
-         * Пока сохраняем текущую
-         * логику. Разделение initiator /
-         * receiver сделаем следующим шагом.
+         * Receiver enters here.
+         *
+         * Initiator does NOT use this to create another channel.
          */
 
-        const channel =
-            connection.createDataChannel(
-                "chat"
+        connection.ondatachannel =
+            (event) => {
+
+                console.log(
+                    "[RTC] incoming DataChannel",
+                    peerId,
+                    event.channel.label
+                );
+
+                const incomingChannel =
+                    event.channel;
+
+                this.setupDataChannel(
+                    peerId,
+                    incomingChannel,
+                    false
+                );
+            };
+
+        /*
+         * =====================================================
+         * INITIATOR DATA CHANNEL
+         * =====================================================
+         *
+         * Only initiator creates "chat".
+         */
+
+        if (isInitiator) {
+
+            console.log(
+                "[RTC] creating DataChannel as initiator",
+                peerId
             );
+
+            const channel =
+                connection.createDataChannel(
+                    "chat"
+                );
+
+            this.setupDataChannel(
+                peerId,
+                channel,
+                true
+            );
+
+        } else {
+
+            console.log(
+                "[RTC] waiting for incoming DataChannel",
+                peerId
+            );
+        }
+
+        /*
+         * =====================================================
+         * RESTORE EARLY ICE
+         * =====================================================
+         *
+         * Candidate could have arrived before the connection
+         * existed.
+         */
+
+        const earlyCandidates =
+            this.pendingCandidates.get(
+                peerId
+            );
+
+        if (
+            earlyCandidates &&
+            earlyCandidates.length > 0
+        ) {
+
+            console.log(
+                "[RTC] restoring early ICE candidates",
+                peerId,
+                earlyCandidates.length
+            );
+
+            const queue =
+                this.candidateQueues.get(
+                    peerId
+                );
+
+            queue.push(
+                ...earlyCandidates
+            );
+
+            this.pendingCandidates.delete(
+                peerId
+            );
+        }
+
+        console.log(
+            "[RTCManager] connection ready",
+            peerId
+        );
+
+        return connection;
+    },
+
+    /*
+     * =========================================================
+     * DATA CHANNEL SETUP
+     * =========================================================
+     */
+
+    setupDataChannel(
+        peerId,
+        channel,
+        local
+    ) {
+
+        /*
+         * Если у нас уже есть открытый/открывающийся канал,
+         * не заменяем его случайным вторым каналом.
+         */
+
+        const existingChannel =
+            this.channels.get(
+                peerId
+            );
+
+        if (
+            existingChannel &&
+            existingChannel !== channel &&
+            (
+                existingChannel.readyState === "open" ||
+                existingChannel.readyState === "connecting"
+            )
+        ) {
+
+            console.warn(
+                "[RTC] duplicate DataChannel ignored",
+                peerId,
+                channel.label
+            );
+
+            try {
+                channel.close();
+            } catch (err) {
+                console.warn(
+                    "[RTC] failed to close duplicate channel",
+                    err
+                );
+            }
+
+            return;
+        }
 
         this.channels.set(
             peerId,
             channel
         );
 
-        channel.onopen = () => {
+        console.log(
+            "[RTC] DataChannel registered",
+            peerId,
+            local
+                ? "local"
+                : "incoming"
+        );
 
-            console.log(
-                "[RTC] data channel open",
-                peerId
-            );
-        };
+        /*
+         * =====================================================
+         * CHANNEL OPEN
+         * =====================================================
+         */
+
+        channel.onopen =
+            () => {
+
+                console.log(
+                    "[RTC] DATA CHANNEL OPEN",
+                    peerId
+                );
+
+                console.log(
+                    "[RTC] channel state",
+                    peerId,
+                    channel.readyState
+                );
+            };
+
+        /*
+         * =====================================================
+         * CHANNEL CLOSE
+         * =====================================================
+         */
+
+        channel.onclose =
+            () => {
+
+                console.warn(
+                    "[RTC] DataChannel CLOSED",
+                    peerId
+                );
+
+                /*
+                 * Удаляем только этот канал.
+                 * Если уже появился другой — его не трогаем.
+                 */
+
+                if (
+                    this.channels.get(
+                        peerId
+                    ) === channel
+                ) {
+
+                    this.channels.delete(
+                        peerId
+                    );
+                }
+            };
+
+        /*
+         * =====================================================
+         * CHANNEL ERROR
+         * =====================================================
+         */
+
+        channel.onerror =
+            (error) => {
+
+                console.error(
+                    "[RTC] DataChannel ERROR",
+                    peerId,
+                    error
+                    );
+            };
+
+        /*
+         * =====================================================
+         * CHANNEL MESSAGE
+         * =====================================================
+         */
 
         channel.onmessage =
             (event) => {
@@ -158,101 +538,40 @@ export const RTCManager = {
                         packet
                     );
 
-                    UI.addMessage(
-                        packet.text,
-                        false
+                    if (
+                        packet.type ===
+                        "chat"
+                    ) {
+
+                        UI.addMessage(
+                            packet.text,
+                            false
+                        );
+
+                        return;
+                    }
+
+                    console.warn(
+                        "[RTC] unknown packet",
+                        packet
                     );
 
                 } catch (err) {
 
                     console.error(
                         "[RTC] invalid packet",
+                        peerId,
                         err
                     );
                 }
             };
-
-        /*
-         * ==========================
-         * INCOMING DATA CHANNEL
-         * ==========================
-         */
-
-        connection.ondatachannel =
-            (event) => {
-
-                const incomingChannel =
-                    event.channel;
-
-                this.channels.set(
-                    peerId,
-                    incomingChannel
-                );
-
-                incomingChannel.onopen =
-                    () => {
-
-                        console.log(
-                            "[RTC] incoming channel open",
-                            peerId
-                        );
-                    };
-
-                incomingChannel.onmessage =
-                    (event) => {
-
-                        console.log(
-                            "WHISPER TEST"
-                        );
-
-                        try {
-
-                            const packet =
-                                JSON.parse(
-                                    event.data
-                                );
-
-                            console.log(
-                                "[RTC] packet received",
-                                peerId,
-                                packet
-                            );
-
-                            console.log(
-                                "[RTC] UI object",
-                                UI
-                            );
-
-                            console.log(
-                                "[RTC] FORCE MESSAGE"
-                            );
-
-                            UI.addMessage(
-                                packet.text,
-                                false
-                            );
-
-                            console.log(
-                                "[RTC] UI MESSAGE ADDED"
-                            );
-
-                        } catch (err) {
-
-                            console.error(
-                                "[RTC] incoming handler failed",
-                                err
-                            );
-                        }
-                    };
-            };
-
-        console.log(
-            "[RTCManager] connection ready",
-            peerId
-        );
-
-        return connection;
     },
+
+    /*
+     * =========================================================
+     * GET CONNECTION
+     * =========================================================
+     */
 
     getConnection(peerId) {
 
@@ -260,6 +579,12 @@ export const RTCManager = {
             peerId
         );
     },
+
+    /*
+     * =========================================================
+     * CREATE OFFER
+     * =========================================================
+     */
 
     async createOffer(peerId) {
 
@@ -273,8 +598,27 @@ export const RTCManager = {
             if (!connection) {
 
                 console.error(
-                    "[RTC] no connection",
+                    "[RTC] createOffer: no connection",
                     peerId
+                );
+
+                return null;
+            }
+
+            /*
+             * Не создаём новый offer,
+             * если signaling state уже не stable.
+             */
+
+            if (
+                connection.signalingState !==
+                "stable"
+            ) {
+
+                console.warn(
+                    "[RTC] cannot create offer in state",
+                    peerId,
+                    connection.signalingState
                 );
 
                 return null;
@@ -289,7 +633,8 @@ export const RTCManager = {
                 await connection.createOffer();
 
             console.log(
-                "[RTC] offer created"
+                "[RTC] offer created",
+                peerId
             );
 
             await connection.setLocalDescription(
@@ -297,28 +642,41 @@ export const RTCManager = {
             );
 
             console.log(
-                "[RTC] local description set"
+                "[RTC] local description set",
+                peerId
             );
 
-            window.wsClient.send({
+            const sent =
+                window.wsClient.send({
 
-                type:
-                    "offer",
+                    type:
+                        "offer",
 
-                target:
-                    peerId,
+                    target:
+                        peerId,
 
-                from:
-                    ProfileManager
-                        .getProfile()
-                        .id,
+                    from:
+                        ProfileManager
+                            .getProfile()
+                            .id,
 
-                offer:
-                    connection.localDescription
-            });
+                    offer:
+                        connection.localDescription
+                });
+
+            if (!sent) {
+
+                console.error(
+                    "[RTC] offer could not be sent",
+                    peerId
+                );
+
+                return null;
+            }
 
             console.log(
-                "[RTC] offer sent"
+                "[RTC] offer sent",
+                peerId
             );
 
             return offer;
@@ -327,12 +685,19 @@ export const RTCManager = {
 
             console.error(
                 "[RTC] createOffer failed",
+                peerId,
                 error
             );
 
             return null;
         }
     },
+
+    /*
+     * =========================================================
+     * SET REMOTE DESCRIPTION
+     * =========================================================
+     */
 
     async setRemoteDescription(
         peerId,
@@ -347,23 +712,54 @@ export const RTCManager = {
         if (!connection) {
 
             console.error(
-                "[RTC] no connection",
+                "[RTC] setRemoteDescription: no connection",
                 peerId
             );
 
-            return;
+            return false;
         }
 
-        await connection.setRemoteDescription(
-            new RTCSessionDescription(
-                sdp
-            )
-        );
+        try {
 
-        console.log(
-            "[RTC] remote description set"
-        );
+            await connection.setRemoteDescription(
+                new RTCSessionDescription(
+                    sdp
+                )
+            );
+
+            console.log(
+                "[RTC] remote description set",
+                peerId
+            );
+
+            /*
+             * Теперь можно применить ICE candidates,
+             * которые ждали remoteDescription.
+             */
+
+            await this.flushCandidateQueue(
+                peerId
+            );
+
+            return true;
+
+        } catch (error) {
+
+            console.error(
+                "[RTC] setRemoteDescription failed",
+                peerId,
+                error
+            );
+
+            return false;
+        }
     },
+
+    /*
+     * =========================================================
+     * CREATE ANSWER
+     * =========================================================
+     */
 
     async createAnswer(peerId) {
 
@@ -375,52 +771,84 @@ export const RTCManager = {
         if (!connection) {
 
             console.error(
-                "[RTC] no connection",
+                "[RTC] createAnswer: no connection",
                 peerId
             );
 
             return null;
         }
 
-        console.log(
-            "[RTC] creating answer",
-            peerId
-        );
+        try {
 
-        const answer =
-            await connection.createAnswer();
+            console.log(
+                "[RTC] creating answer",
+                peerId
+            );
 
-        await connection.setLocalDescription(
-            answer
-        );
+            const answer =
+                await connection.createAnswer();
 
-        console.log(
-            "[RTC] answer local description set"
-        );
+            await connection.setLocalDescription(
+                answer
+            );
 
-        window.wsClient.send({
+            console.log(
+                "[RTC] answer local description set",
+                peerId
+            );
 
-            type:
-                "answer",
+            const sent =
+                window.wsClient.send({
 
-            target:
+                    type:
+                        "answer",
+
+                    target:
+                        peerId,
+
+                    from:
+                        ProfileManager
+                            .getProfile()
+                            .id,
+
+                    answer:
+                        connection.localDescription
+                });
+
+            if (!sent) {
+
+                console.error(
+                    "[RTC] answer could not be sent",
+                    peerId
+                );
+
+                return null;
+            }
+
+            console.log(
+                "[RTC] answer sent",
+                peerId
+            );
+
+            return answer;
+
+        } catch (error) {
+
+            console.error(
+                "[RTC] createAnswer failed",
                 peerId,
+                error
+            );
 
-            from:
-                ProfileManager
-                    .getProfile()
-                    .id,
-
-            answer:
-                connection.localDescription
-        });
-
-        console.log(
-            "[RTC] answer sent"
-        );
-
-        return answer;
+            return null;
+        }
     },
+
+    /*
+     * =========================================================
+     * HANDLE OFFER
+     * =========================================================
+     */
 
     async handleOffer(
         peerId,
@@ -432,33 +860,66 @@ export const RTCManager = {
             peerId
         );
 
-        let connection =
-            this.getConnection(
+        try {
+
+            let connection =
+                this.getConnection(
+                    peerId
+                );
+
+            if (!connection) {
+
+                console.log(
+                    "[RTC] creating receiver connection",
+                    peerId
+                );
+
+                connection =
+                    this.createPeerConnection(
+                        peerId
+                    );
+            }
+
+            const success =
+                await this.setRemoteDescription(
+                    peerId,
+                    offer
+                );
+
+            if (!success) {
+
+                console.error(
+                    "[RTC] failed to set remote offer",
+                    peerId
+                );
+
+                return;
+            }
+
+            console.log(
+                "[RTC] remote offer set",
                 peerId
             );
 
-        if (!connection) {
+            await this.createAnswer(
+                peerId
+            );
 
-            connection =
-                this.createPeerConnection(
-                    peerId
-                );
+        } catch (error) {
+
+            console.error(
+                "[RTC] handleOffer failed",
+                peerId,
+                error
+            );
         }
-
-        await connection.setRemoteDescription(
-            new RTCSessionDescription(
-                offer
-            )
-        );
-
-        console.log(
-            "[RTC] remote offer set"
-        );
-
-        await this.createAnswer(
-            peerId
-        );
     },
+
+    /*
+     * =========================================================
+     * HANDLE ANSWER
+     * =========================================================
+     */
 
     async handleAnswer(
         peerId,
@@ -476,10 +937,21 @@ export const RTCManager = {
         );
     },
 
+    /*
+     * =========================================================
+     * ADD ICE CANDIDATE
+     * =========================================================
+     */
+
     async addIceCandidate(
         peerId,
         candidate
     ) {
+
+        /*
+         * Если connection ещё не существует,
+         * сохраняем candidate.
+         */
 
         const connection =
             this.getConnection(
@@ -488,24 +960,168 @@ export const RTCManager = {
 
         if (!connection) {
 
-            console.error(
-                "[RTC] no connection",
+            console.log(
+                "[RTC] queueing ICE: no connection yet",
                 peerId
             );
+
+            if (
+                !this.pendingCandidates.has(
+                    peerId
+                )
+            ) {
+
+                this.pendingCandidates.set(
+                    peerId,
+                    []
+                );
+            }
+
+            this.pendingCandidates
+                .get(peerId)
+                .push(candidate);
 
             return;
         }
 
-        await connection.addIceCandidate(
-            new RTCIceCandidate(
-                candidate
-            )
-        );
+        /*
+         * Если remoteDescription ещё не установлен,
+         * откладываем candidate.
+         */
+
+        if (
+            !connection.remoteDescription
+        ) {
+
+            console.log(
+                "[RTC] queueing ICE: remote description not set",
+                peerId
+            );
+
+            if (
+                !this.candidateQueues.has(
+                    peerId
+                )
+            ) {
+
+                this.candidateQueues.set(
+                    peerId,
+                    []
+                );
+            }
+
+            this.candidateQueues
+                .get(peerId)
+                .push(candidate);
+
+            return;
+        }
+
+        try {
+
+            await connection.addIceCandidate(
+                new RTCIceCandidate(
+                    candidate
+                )
+            );
+
+            console.log(
+                "[RTC] ICE candidate added",
+                peerId
+            );
+
+        } catch (error) {
+
+            console.error(
+                "[RTC] addIceCandidate failed",
+                peerId,
+                error
+            );
+        }
+    },
+
+    /*
+     * =========================================================
+     * FLUSH ICE QUEUE
+     * =========================================================
+     */
+
+    async flushCandidateQueue(
+        peerId
+    ) {
+
+        const connection =
+            this.getConnection(
+                peerId
+            );
+
+        if (!connection) {
+            return;
+        }
+
+        if (
+            !connection.remoteDescription
+        ) {
+            return;
+        }
+
+        const queue =
+            this.candidateQueues.get(
+                peerId
+            );
+
+        if (
+            !queue ||
+            queue.length === 0
+        ) {
+
+            return;
+        }
 
         console.log(
-            "[RTC] ICE candidate added"
+            "[RTC] flushing ICE queue",
+            peerId,
+            queue.length
         );
+
+        this.candidateQueues.delete(
+            peerId
+        );
+
+        for (
+            const candidate
+            of queue
+        ) {
+
+            try {
+
+                await connection.addIceCandidate(
+                    new RTCIceCandidate(
+                        candidate
+                    )
+                );
+
+                console.log(
+                    "[RTC] queued ICE candidate added",
+                    peerId
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "[RTC] queued ICE candidate failed",
+                    peerId,
+                    error
+                );
+            }
+        }
     },
+
+    /*
+     * =========================================================
+     * HANDLE CANDIDATE
+     * =========================================================
+     */
 
     async handleCandidate(
         peerId,
@@ -523,6 +1139,12 @@ export const RTCManager = {
         );
     },
 
+    /*
+     * =========================================================
+     * SEND MESSAGE
+     * =========================================================
+     */
+
     sendMessage(
         peerId,
         text
@@ -536,24 +1158,31 @@ export const RTCManager = {
         if (!channel) {
 
             console.error(
-                "[RTC] no channel",
+                "[RTC] no DataChannel",
                 peerId
             );
 
-            return;
+            return false;
         }
+
+        console.log(
+            "[RTC] sendMessage channel state",
+            peerId,
+            channel.readyState
+        );
 
         if (
             channel.readyState !==
             "open"
         ) {
 
-            console.error(
-                "[RTC] channel not open",
-                peerId
+            console.warn(
+                "[RTC] DataChannel not open yet",
+                peerId,
+                channel.readyState
             );
 
-            return;
+            return false;
         }
 
         const packet = {
@@ -575,23 +1204,38 @@ export const RTCManager = {
             text
         };
 
-        channel.send(
-            JSON.stringify(
+        try {
+
+            channel.send(
+                JSON.stringify(
+                    packet
+                )
+            );
+
+            UI.addMessage(
+                text,
+                true
+            );
+
+            console.log(
+                "[RTC] message sent",
+                peerId,
                 packet
-            )
-        );
+            );
 
-        UI.addMessage(
-            text,
-            true
-        );
+            return true;
 
-        console.log(
-            "[RTC] message sent",
-            packet
-        );
+        } catch (error) {
+
+            console.error(
+                "[RTC] message send failed",
+                peerId,
+                error
+            );
+
+            return false;
+        }
     }
-
 };
 
 window.RTCManager =
