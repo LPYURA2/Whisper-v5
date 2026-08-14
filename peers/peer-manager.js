@@ -1,5 +1,6 @@
 import { ProfileManager } from "../profile/profile-manager.js";
 import { RTCManager } from "../network/rtc-manager.js";
+import { ContactManager } from "../contacts/contact-manager.js";
 
 export const PeerManager = {
 
@@ -31,6 +32,10 @@ export const PeerManager = {
         const myId =
             profile.id;
 
+        /*
+         * Убираем собственного PeerID.
+         */
+
         this.peers =
             peers.filter(
                 peerId =>
@@ -43,29 +48,50 @@ export const PeerManager = {
         );
 
         /*
-         * Discovery сообщает только о том,
-         * какие PeerID сейчас находятся
-         * на signaling-сервере.
+         * ==========================
+         * AUTO CONNECT CONTACTS
+         * ==========================
          *
-         * Само создание соединения
-         * теперь выполняется через connect().
+         * Signaling сообщает только
+         * онлайн-PeerID.
+         *
+         * Соединяемся только с теми
+         * онлайн peers, которые уже
+         * находятся в наших контактах.
          */
+
+        const contacts =
+            ContactManager.getContacts();
 
         for (
             const peerId
             of this.peers
         ) {
 
-            /*
-             * Если контакт уже известен
-             * и мы должны автоматически
-             * поддерживать соединение,
-             * connect() сам решит,
-             * нужно ли его создавать.
-             *
-             * Пока не создаём соединения
-             * со всеми обнаруженными peers.
-             */
+            const isContact =
+                contacts.some(
+                    contact =>
+                        contact.id === peerId
+                );
+
+            if (!isContact) {
+
+                console.log(
+                    "[PeerManager] peer is online but not a contact",
+                    peerId
+                );
+
+                continue;
+            }
+
+            console.log(
+                "[PeerManager] auto-connect contact",
+                peerId
+            );
+
+            this.connect(
+                peerId
+            );
         }
     },
 
@@ -80,10 +106,20 @@ export const PeerManager = {
             return;
         }
 
+        const profile =
+            ProfileManager.getProfile();
+
+        if (!profile) {
+
+            console.error(
+                "[PeerManager] profile not found"
+            );
+
+            return;
+        }
+
         const myId =
-            ProfileManager
-                .getProfile()
-                .id;
+            profile.id;
 
         if (peerId === myId) {
 
@@ -95,7 +131,9 @@ export const PeerManager = {
         }
 
         /*
-         * Уже есть рабочее соединение?
+         * ==========================
+         * PREVENT DUPLICATE CONNECTION
+         * ==========================
          */
 
         const existing =
@@ -127,16 +165,23 @@ export const PeerManager = {
 
                 return existing;
             }
+
+            /*
+             * Если соединение failed/disconnected,
+             * пока не создаём второе соединение
+             * здесь автоматически.
+             *
+             * Переподключение будет отдельным
+             * следующим этапом.
+             */
         }
 
         /*
-         * Определяем инициатора.
+         * ==========================
+         * DETERMINISTIC INITIATOR
+         * ==========================
          *
-         * Пока используем deterministic rule,
-         * чтобы обе стороны не создавали offer.
-         *
-         * Позже это заменим пользовательской
-         * моделью "тот, кто добавил контакт".
+         * Только одна сторона создаёт offer.
          */
 
         const shouldInitiate =
@@ -165,8 +210,9 @@ export const PeerManager = {
         );
 
         /*
-         * Создаём единственное
-         * RTCPeerConnection.
+         * ==========================
+         * CREATE SINGLE CONNECTION
+         * ==========================
          */
 
         const connection =
@@ -185,7 +231,9 @@ export const PeerManager = {
         }
 
         /*
-         * Только инициатор создаёт offer.
+         * ==========================
+         * INITIATOR → OFFER
+         * ==========================
          */
 
         if (shouldInitiate) {
@@ -210,4 +258,5 @@ export const PeerManager = {
 
 };
 
-window.PeerManager = PeerManager;
+window.PeerManager =
+    PeerManager;
