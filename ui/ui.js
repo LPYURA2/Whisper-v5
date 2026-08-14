@@ -2,14 +2,34 @@ import { RTCManager } from "../network/rtc-manager.js";
 import { PeerManager } from "../peers/peer-manager.js";
 import { ContactManager } from "../contacts/contact-manager.js";
 import { ProfileManager } from "../profile/profile-manager.js";
+import { LogManager } from "../core/log-manager.js";
 
 export const UI = {
 
     selectedContactId: null,
 
+    currentScreen: "main",
+
+    logsUnsubscribe: null,
+
     init() {
 
         console.log("[UI] initialized");
+
+        this.showMainScreen();
+    },
+
+    /*
+     * =====================================================
+     * MAIN SCREEN
+     * =====================================================
+     */
+
+    showMainScreen() {
+
+        this.currentScreen = "main";
+
+        this.unsubscribeLogs();
 
         const app =
             document.getElementById(
@@ -70,6 +90,15 @@ export const UI = {
                         type="button"
                     >
                         + Добавить контакт
+                    </button>
+
+                    <!-- SETTINGS -->
+
+                    <button
+                        id="open-settings"
+                        type="button"
+                    >
+                        ⚙ Настройки
                     </button>
 
                 </aside>
@@ -137,7 +166,6 @@ export const UI = {
                         "[UI] failed to copy profile ID",
                         error
                     );
-
                 }
             }
         );
@@ -233,7 +261,6 @@ export const UI = {
                             0,
                             8
                         )
-
                 });
 
                 UI.renderContacts();
@@ -241,11 +268,34 @@ export const UI = {
                 console.log(
                     "[UI] contact added"
                 );
-                /* 
-                * После добавления контакта сразу начинаем попвтеу соединения
-                */
 
-                PeerManager.connect(id);
+                /*
+                 * После добавления контакта
+                 * начинаем попытку соединения.
+                 */
+
+                PeerManager.connect(
+                    id
+                );
+            }
+        );
+
+        /*
+         * ==========================
+         * SETTINGS
+         * ==========================
+         */
+
+        const settingsButton =
+            document.getElementById(
+                "open-settings"
+            );
+
+        settingsButton.addEventListener(
+            "click",
+            () => {
+
+                UI.showSettings();
             }
         );
 
@@ -259,9 +309,298 @@ export const UI = {
     },
 
     /*
-     * ==========================
+     * =====================================================
+     * SETTINGS
+     * =====================================================
+     */
+
+    showSettings() {
+
+        this.currentScreen =
+            "settings";
+
+        this.unsubscribeLogs();
+
+        const app =
+            document.getElementById(
+                "app"
+            );
+
+        app.innerHTML = `
+
+            <div class="whisper-shell">
+
+                <aside class="sidebar settings-screen">
+
+                    <button
+                        id="settings-back"
+                        type="button"
+                    >
+                        ← Назад
+                    </button>
+
+                    <h2>Настройки</h2>
+
+                    <div class="settings-list">
+
+                        <button
+                            id="open-logs"
+                            type="button"
+                        >
+                            📋 Логи
+                        </button>
+
+                    </div>
+
+                </aside>
+
+            </div>
+        `;
+
+        const backButton =
+            document.getElementById(
+                "settings-back"
+            );
+
+        backButton.addEventListener(
+            "click",
+            () => {
+
+                UI.showMainScreen();
+            }
+        );
+
+        const logsButton =
+            document.getElementById(
+                "open-logs"
+            );
+
+        logsButton.addEventListener(
+            "click",
+            () => {
+
+                UI.showLogs();
+            }
+        );
+    },
+
+    /*
+     * =====================================================
+     * LOGS SCREEN
+     * =====================================================
+     */
+
+    showLogs() {
+
+        this.currentScreen =
+            "logs";
+
+        this.unsubscribeLogs();
+
+        const app =
+            document.getElementById(
+                "app"
+            );
+
+        app.innerHTML = `
+
+            <div class="whisper-shell">
+
+                <main class="logs-screen">
+
+                    <div class="logs-header">
+
+                        <button
+                            id="logs-back"
+                            type="button"
+                        >
+                            ← Назад
+                        </button>
+
+                        <h2>Логи</h2>
+
+                        <button
+                            id="clear-logs"
+                            type="button"
+                        >
+                            Очистить
+                        </button>
+
+                    </div>
+
+                    <div
+                        id="logs-container"
+                        class="logs-container"
+                    ></div>
+
+                </main>
+
+            </div>
+        `;
+
+        const container =
+            document.getElementById(
+                "logs-container"
+            );
+
+        /*
+         * ==========================
+         * RENDER EXISTING LOGS
+         * ==========================
+         */
+
+        const existingLogs =
+            LogManager.getLogs();
+
+        for (
+            const entry
+            of existingLogs
+        ) {
+
+            UI.renderLogEntry(
+                entry
+            );
+        }
+
+        /*
+         * ==========================
+         * LIVE LOGGING
+         * ==========================
+         */
+
+        this.logsUnsubscribe =
+            LogManager.subscribe(
+                (entry) => {
+
+                    if (
+                        UI.currentScreen !==
+                        "logs"
+                    ) {
+
+                        return;
+                    }
+
+                    if (
+                        entry.clear
+                    ) {
+
+                        container.innerHTML =
+                            "";
+
+                        return;
+                    }
+
+                    UI.renderLogEntry(
+                        entry
+                    );
+                }
+            );
+
+        /*
+         * ==========================
+         * BACK
+         * ==========================
+         */
+
+        const backButton =
+            document.getElementById(
+                "logs-back"
+            );
+
+        backButton.addEventListener(
+            "click",
+            () => {
+
+                UI.showSettings();
+            }
+        );
+
+        /*
+         * ==========================
+         * CLEAR
+         * ==========================
+         */
+
+        const clearButton =
+            document.getElementById(
+                "clear-logs"
+            );
+
+        clearButton.addEventListener(
+            "click",
+            () => {
+
+                LogManager.clear();
+            }
+        );
+    },
+
+    /*
+     * =====================================================
+     * RENDER ONE LOG ENTRY
+     * =====================================================
+     */
+
+    renderLogEntry(entry) {
+
+        const container =
+            document.getElementById(
+                "logs-container"
+            );
+
+        if (!container) {
+            return;
+        }
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+        div.className =
+            "log-entry log-" +
+            entry.level.toLowerCase();
+
+        div.textContent =
+            `[${entry.time}] ` +
+            `[${entry.level}] ` +
+            entry.message;
+
+        container.appendChild(
+            div
+        );
+
+        /*
+         * Всегда показываем самые свежие записи.
+         */
+
+        container.scrollTop =
+            container.scrollHeight;
+    },
+
+    /*
+     * =====================================================
+     * UNSUBSCRIBE LOGS
+     * =====================================================
+     */
+
+    unsubscribeLogs() {
+
+        if (
+            this.logsUnsubscribe
+        ) {
+
+            this.logsUnsubscribe();
+
+            this.logsUnsubscribe =
+                null;
+        }
+    },
+
+    /*
+     * =====================================================
      * MESSAGES
-     * ==========================
+     * =====================================================
      */
 
     addMessage(
@@ -307,9 +646,9 @@ export const UI = {
     },
 
     /*
-     * ==========================
+     * =====================================================
      * CONTACTS
-     * ==========================
+     * =====================================================
      */
 
     renderContacts() {
@@ -379,7 +718,6 @@ export const UI = {
             );
         }
     }
-
 };
 
 window.UI = UI;
