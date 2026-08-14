@@ -6,9 +6,69 @@ export const LogManager = {
 
     listeners: [],
 
+    originalConsole: null,
+
+    initialized: false,
+
     init() {
 
-        console.log(
+        if (this.initialized) {
+            return;
+        }
+
+        this.initialized = true;
+
+        this.originalConsole = {
+
+            log:
+                console.log.bind(console),
+
+            warn:
+                console.warn.bind(console),
+
+            error:
+                console.error.bind(console)
+        };
+
+        const manager = this;
+
+        console.log = function (...args) {
+
+            manager.originalConsole.log(
+                ...args
+            );
+
+            manager.add(
+                "INFO",
+                args
+            );
+        };
+
+        console.warn = function (...args) {
+
+            manager.originalConsole.warn(
+                ...args
+            );
+
+            manager.add(
+                "WARN",
+                args
+            );
+        };
+
+        console.error = function (...args) {
+
+            manager.originalConsole.error(
+                ...args
+            );
+
+            manager.add(
+                "ERROR",
+                args
+            );
+        };
+
+        this.originalConsole.log(
             "[LogManager] initialized"
         );
     },
@@ -76,42 +136,22 @@ export const LogManager = {
 
             } catch (error) {
 
-                console.error(
-                    "[LogManager] listener error",
-                    error
-                );
+                /*
+                 * Не используем console.error здесь,
+                 * иначе получим рекурсию.
+                 */
+
+                if (
+                    this.originalConsole
+                ) {
+
+                    this.originalConsole.error(
+                        "[LogManager] listener error",
+                        error
+                    );
+                }
             }
         }
-    },
-
-    info(...args) {
-
-        console.log(...args);
-
-        this.add(
-            "INFO",
-            args
-        );
-    },
-
-    warn(...args) {
-
-        console.warn(...args);
-
-        this.add(
-            "WARN",
-            args
-        );
-    },
-
-    error(...args) {
-
-        console.error(...args);
-
-        this.add(
-            "ERROR",
-            args
-        );
     },
 
     getLogs() {
@@ -152,7 +192,18 @@ export const LogManager = {
                     clear: true
                 });
 
-            } catch {}
+            } catch (error) {
+
+                if (
+                    this.originalConsole
+                ) {
+
+                    this.originalConsole.error(
+                        "[LogManager] clear listener error",
+                        error
+                    );
+                }
+            }
         }
     }
 };
