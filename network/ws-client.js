@@ -20,12 +20,45 @@ export class WSClient {
         this.reconnectDelay = 3000;
 
         this.reconnectTimer = null;
+
+        /*
+         * ==========================================
+         * SIGNALING OUTBOX
+         * ==========================================
+         *
+         * Если WebSocket ещё не подключён,
+         * signaling-сообщения не теряем.
+         *
+         * Например:
+         *
+         * RTC создаёт offer
+         *        ↓
+         * WS ещё CONNECTING
+         *        ↓
+         * offer попадает сюда
+         *        ↓
+         * WS подключается
+         *        ↓
+         * offer отправляется
+         */
+
+        this.outbox = [];
     }
+
+    /*
+     * ==========================================
+     * CONNECT
+     * ==========================================
+     */
 
     connect() {
 
-        // Не создаём второе WebSocket-соединение,
-        // если текущее уже подключено или подключается.
+        /*
+         * Не создаём второе соединение,
+         * если текущее уже подключено
+         * или находится в процессе подключения.
+         */
+
         if (
             this.socket &&
             (
@@ -52,13 +85,23 @@ export class WSClient {
 
         this.socket = socket;
 
+        /*
+         * ==========================================
+         * OPEN
+         * ==========================================
+         */
+
         socket.addEventListener(
             "open",
             () => {
 
-                // Игнорируем событие старого socket,
-                // если уже создан новый.
-                if (this.socket !== socket) {
+                /*
+                 * Игнорируем событие старого socket.
+                 */
+
+                if (
+                    this.socket !== socket
+                ) {
                     return;
                 }
 
@@ -73,12 +116,40 @@ export class WSClient {
                     socket.readyState
                 );
 
-                this.send({
-                    type: "join",
-                    peerId: this.peerId
-                });
+                /*
+                 * Сначала заново сообщаем серверу,
+                 * что этот клиент онлайн.
+                 */
+
+                const joined =
+                    this.sendImmediate({
+                        type: "join",
+                        peerId: this.peerId
+                    });
+
+                if (!joined) {
+
+                    console.error(
+                        "[WS] failed to send join"
+                    );
+
+                    return;
+                }
+
+                /*
+                 * После join отправляем
+                 * накопленные signaling-сообщения.
+                 */
+
+                this.flushOutbox();
             }
         );
+
+        /*
+         * ==========================================
+         * MESSAGE
+         * ==========================================
+         */
 
         socket.addEventListener(
             "message",
@@ -115,13 +186,24 @@ export class WSClient {
             }
         );
 
+        /*
+         * ==========================================
+         * CLOSE
+         * ==========================================
+         */
+
         socket.addEventListener(
             "close",
             () => {
 
-                // Старый socket не должен
-                // ломать состояние нового.
-                if (this.socket !== socket) {
+                /*
+                 * Старый socket не должен
+                 * менять состояние нового.
+                 */
+
+                if (
+                    this.socket !== socket
+                ) {
                     return;
                 }
 
@@ -133,13 +215,37 @@ export class WSClient {
 
                 this.socket = null;
 
+                /*
+                 * Всё, что находится в outbox,
+                 * остаётся там.
+                 *
+                 * При следующем подключении
+                 * flushOutbox() отправит сообщения.
+                 */
+
                 this.scheduleReconnect();
             }
         );
 
+        /*
+         * ==========================================
+         * ERROR
+         * ==========================================
+         */
+
         socket.addEventListener(
             "error",
             (err) => {
+
+                /*
+                 * Сам reconnect здесь НЕ запускаем.
+                 *
+                 * Обычно после error WebSocket
+                 * перейдёт в close.
+                 *
+                 * reconnect выполняется через close,
+                 * чтобы не создать два соединения.
+                 */
 
                 console.error(
                     "[WS] error",
@@ -149,9 +255,22 @@ export class WSClient {
         );
     }
 
+    /*
+     * ==========================================
+     * RECONNECT
+     * ==========================================
+     */
+
     scheduleReconnect() {
 
-        if (this.reconnectTimer) {
+        /*
+         * Если reconnect уже запланирован,
+         * второй таймер не создаём.
+         */
+
+        if (
+            this.reconnectTimer
+        ) {
             return;
         }
 
@@ -175,6 +294,22 @@ export class WSClient {
             );
     }
 
+    /*
+     * ==========================================
+     * SEND
+     * ==========================================
+     *
+     * Главный метод для signaling.
+     *
+     * Если WS открыт:
+     *
+     *     отправляем сразу.
+     *
+     * Если WS не открыт:
+     *
+     *     помещаем сообщение в outbox.
+     */
+
     send(data) {
 
         if (
@@ -182,8 +317,48 @@ export class WSClient {
             this.socket.readyState !== WebSocket.OPEN
         ) {
 
+            console.warn(
+                "[WS] socket not connected, queueing message",
+                data.type
+            );
+
+            this.outbox.push(
+                data
+            );
+
+            /*
+             * На всякий случай убеждаемся,
+             * что reconnect будет запущен.
+             */
+
+            this.scheduleReconnect();
+
+            return false;
+        }
+
+        return this.sendImmediate(
+            data
+        );
+    }
+
+    /*
+     * ==========================================
+     * SEND IMMEDIATE
+     * ==========================================
+     *
+     * Используется только тогда,
+     * когда socket уже OPEN.
+     */
+
+    sendImmediate(data) {
+
+        if (
+            !this.socket ||
+            this.socket.readyState !== WebSocket.OPEN
+        ) {
+
             console.error(
-                "[WS] socket not connected"
+                "[WS] socket not open"
             );
 
             return false;
@@ -209,13 +384,114 @@ export class WSClient {
                 err
             );
 
+            /*
+             * Если отправка реально не удалась,
+             * сохраняем сообщение.
+             */
+
+            this.outbox.unshift(
+                data
+            );
+
             return false;
         }
     }
 
+    /*
+     * ==========================================
+     * FLUSH OUTBOX
+     * ==========================================
+     *
+     * Отправляет накопленные signaling-сообщения.
+     */
+
+    flushOutbox() {
+
+        if (
+            !this.socket ||
+            this.socket.readyState !== WebSocket.OPEN
+        ) {
+
+            console.warn(
+                "[WS] cannot flush outbox: socket not open"
+            );
+
+            return;
+        }
+
+        if (
+            this.outbox.length === 0
+        ) {
+
+            console.log(
+                "[WS] outbox empty"
+            );
+
+            return;
+        }
+
+        console.log(
+            "[WS] flushing outbox",
+            this.outbox.length
+        );
+
+        /*
+         * Отправляем сообщения последовательно.
+         *
+         * Если какое-либо сообщение не удалось
+         * отправить, оставляем его и прекращаем flush.
+         */
+
+        while (
+            this.outbox.length > 0
+        ) {
+
+            const data =
+                this.outbox.shift();
+
+            const success =
+                this.sendImmediate(
+                    data
+                );
+
+            if (!success) {
+
+                /*
+                 * sendImmediate уже вернул
+                 * сообщение обратно в outbox.
+                 */
+
+                console.warn(
+                    "[WS] outbox flush stopped"
+                );
+
+                break;
+            }
+        }
+
+        console.log(
+            "[WS] outbox remaining",
+            this.outbox.length
+        );
+    }
+
+    /*
+     * ==========================================
+     * HANDLE MESSAGE
+     * ==========================================
+     */
+
     handleMessage(data) {
 
-        switch (data.type) {
+        switch (
+            data.type
+        ) {
+
+            /*
+             * ======================================
+             * WELCOME
+             * ======================================
+             */
 
             case "welcome":
 
@@ -234,6 +510,12 @@ export class WSClient {
                 break;
 
 
+            /*
+             * ======================================
+             * PEERS
+             * ======================================
+             */
+
             case "peers":
 
                 console.log(
@@ -248,9 +530,13 @@ export class WSClient {
                         ? data.peers
                         : [];
 
-                // WSClient только передаёт
-                // список PeerManager.
-                // Он сам НЕ создаёт RTC.
+                /*
+                 * WSClient НЕ создаёт RTC.
+                 *
+                 * Он только сообщает PeerManager,
+                 * кто сейчас находится онлайн.
+                 */
+
                 PeerManager.updatePeers(
                     this.peers
                 );
@@ -262,6 +548,12 @@ export class WSClient {
 
                 break;
 
+
+            /*
+             * ======================================
+             * OFFER
+             * ======================================
+             */
 
             case "offer":
 
@@ -278,6 +570,12 @@ export class WSClient {
                 break;
 
 
+            /*
+             * ======================================
+             * ANSWER
+             * ======================================
+             */
+
             case "answer":
 
                 console.log(
@@ -292,6 +590,12 @@ export class WSClient {
 
                 break;
 
+
+            /*
+             * ======================================
+             * ICE
+             * ======================================
+             */
 
             case "ice-candidate":
 
@@ -308,12 +612,19 @@ export class WSClient {
                 break;
 
 
-            case "message":
+            /*
+             * ======================================
+             * MESSAGE
+             * ======================================
+             *
+             * Старый relay пока оставляем
+             * для совместимости.
+             *
+             * Основной транспорт Whisper —
+             * WebRTC DataChannel.
+             */
 
-                // Старый WebSocket relay
-                // пока оставляем для совместимости.
-                // Основной транспорт Whisper —
-                // WebRTC DataChannel.
+            case "message":
 
                 console.log(
                     "[WS] relay message received",
@@ -331,6 +642,12 @@ export class WSClient {
 
                 break;
 
+
+            /*
+             * ======================================
+             * UNKNOWN
+             * ======================================
+             */
 
             default:
 
