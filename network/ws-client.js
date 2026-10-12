@@ -10,6 +10,7 @@ export class WSClient {
 
         this.socket = null;
 
+        // `connected` means the signaling protocol is ready, not just WS OPEN.
         this.connected = false;
 
         this.peerId =
@@ -21,28 +22,8 @@ export class WSClient {
 
         this.reconnectTimer = null;
 
-        /*
-         * ==========================================
-         * SIGNALING OUTBOX
-         * ==========================================
-         *
-         * Если WebSocket ещё не подключён,
-         * signaling-сообщения не теряем.
-         *
-         * Например:
-         *
-         * RTC создаёт offer
-         *        ↓
-         * WS ещё CONNECTING
-         *        ↓
-         * offer попадает сюда
-         *        ↓
-         * WS подключается
-         *        ↓
-         * offer отправляется
-         */
-
-        this.outbox = [];
+        // SDP offers/answers and ICE candidates are tied to a particular
+        // RTCPeerConnection attempt. Never replay them after reconnect.
     }
 
     /*
@@ -83,6 +64,7 @@ export class WSClient {
                 SIGNAL_SERVER
             );
 
+        this.connected = false;
         this.socket = socket;
 
         /*
@@ -105,10 +87,10 @@ export class WSClient {
                     return;
                 }
 
-                this.connected = true;
+                this.connected = false;
 
                 console.log(
-                    "[WS] connected"
+                    "[WS] WebSocket open; waiting for signaling-ready"
                 );
 
                 console.log(
@@ -136,12 +118,8 @@ export class WSClient {
                     return;
                 }
 
-                /*
-                 * После join отправляем
-                 * накопленные signaling-сообщения.
-                 */
-
-                this.flushOutbox();
+                // Do not flush old SDP/ICE here. The server acknowledgement
+                // below is the only point at which signaling becomes ready.
             }
         );
 
@@ -154,6 +132,11 @@ export class WSClient {
         socket.addEventListener(
             "message",
             (event) => {
+
+                // Ignore late events from a socket replaced during reconnect.
+                if (this.socket !== socket) {
+                    return;
+                }
 
                 console.log(
                     "[RAW MESSAGE]",
@@ -215,14 +198,7 @@ export class WSClient {
 
                 this.socket = null;
 
-                /*
-                 * Всё, что находится в outbox,
-                 * остаётся там.
-                 *
-                 * При следующем подключении
-                 * flushOutbox() отправит сообщения.
-                 */
-
+                // Any SDP/ICE from the previous transport session is stale.
                 this.scheduleReconnect();
             }
         );
@@ -298,56 +274,28 @@ export class WSClient {
      * ==========================================
      * SEND
      * ==========================================
-     *
-     * Главный метод для signaling.
-     *
-     * Если WS открыт:
-     *
-     *     отправляем сразу.
-     *
-     * Если WS не открыт:
-     *
-     *     помещаем сообщение в outbox.
+     * WebRTC signaling packets are ephemeral: if signaling is not ready,
+     * drop them rather than replaying them into a later connection attempt.
      */
 
     send(data) {
 
-        if (
-            !this.socket ||
-            this.socket.readyState !== WebSocket.OPEN
-        ) {
-
+        if (!this.connected) {
             console.warn(
-                "[WS] socket not connected, queueing message",
-                data.type
+                "[WS] signaling not ready; dropping stale-capable packet",
+                data?.type
             );
-
-            this.outbox.push(
-                data
-            );
-
-            /*
-             * На всякий случай убеждаемся,
-             * что reconnect будет запущен.
-             */
-
-            this.scheduleReconnect();
-
             return false;
         }
 
-        return this.sendImmediate(
-            data
-        );
+        return this.sendImmediate(data);
     }
 
     /*
      * ==========================================
      * SEND IMMEDIATE
      * ==========================================
-     *
-     * Используется только тогда,
-     * когда socket уже OPEN.
+     * Used for `join` before signaling-ready and for packets after readiness.
      */
 
     sendImmediate(data) {
@@ -384,95 +332,8 @@ export class WSClient {
                 err
             );
 
-            /*
-             * Если отправка реально не удалась,
-             * сохраняем сообщение.
-             */
-
-            this.outbox.unshift(
-                data
-            );
-
             return false;
         }
-    }
-
-    /*
-     * ==========================================
-     * FLUSH OUTBOX
-     * ==========================================
-     *
-     * Отправляет накопленные signaling-сообщения.
-     */
-
-    flushOutbox() {
-
-        if (
-            !this.socket ||
-            this.socket.readyState !== WebSocket.OPEN
-        ) {
-
-            console.warn(
-                "[WS] cannot flush outbox: socket not open"
-            );
-
-            return;
-        }
-
-        if (
-            this.outbox.length === 0
-        ) {
-
-            console.log(
-                "[WS] outbox empty"
-            );
-
-            return;
-        }
-
-        console.log(
-            "[WS] flushing outbox",
-            this.outbox.length
-        );
-
-        /*
-         * Отправляем сообщения последовательно.
-         *
-         * Если какое-либо сообщение не удалось
-         * отправить, оставляем его и прекращаем flush.
-         */
-
-        while (
-            this.outbox.length > 0
-        ) {
-
-            const data =
-                this.outbox.shift();
-
-            const success =
-                this.sendImmediate(
-                    data
-                );
-
-            if (!success) {
-
-                /*
-                 * sendImmediate уже вернул
-                 * сообщение обратно в outbox.
-                 */
-
-                console.warn(
-                    "[WS] outbox flush stopped"
-                );
-
-                break;
-            }
-        }
-
-        console.log(
-            "[WS] outbox remaining",
-            this.outbox.length
-        );
     }
 
     /*
@@ -486,6 +347,24 @@ export class WSClient {
         switch (
             data.type
         ) {
+
+            case "signaling-ready": {
+
+                if (data.peerId !== this.peerId) {
+                    console.error("[WS] signaling-ready ID mismatch");
+                    this.connected = false;
+                    return;
+                }
+
+                this.connected = true;
+                console.log("[WS] signaling ready", this.peerId);
+                break;
+            }
+
+            case "signaling-error":
+                this.connected = false;
+                console.error("[WS] signaling rejected join", data.code);
+                break;
 
             /*
              * ======================================
