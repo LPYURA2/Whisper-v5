@@ -8,6 +8,8 @@ export const PeerManager = {
 
     connections: new Map(),
 
+    retryTimers: new Map(),
+
     init() {
 
         console.log(
@@ -48,16 +50,10 @@ export const PeerManager = {
         );
 
         /*
-         * ==========================
-         * AUTO CONNECT CONTACTS
-         * ==========================
+         * Signaling сообщает только онлайн-PeerID.
          *
-         * Signaling сообщает только
-         * онлайн-PeerID.
-         *
-         * Соединяемся только с теми
-         * онлайн peers, которые уже
-         * находятся в наших контактах.
+         * Автоматически подключаемся только к контактам,
+         * которые сейчас онлайн.
          */
 
         const contacts =
@@ -131,9 +127,7 @@ export const PeerManager = {
         }
 
         /*
-         * ==========================
-         * PREVENT DUPLICATE CONNECTION
-         * ==========================
+         * Проверяем существующее соединение.
          */
 
         const existing =
@@ -152,14 +146,68 @@ export const PeerManager = {
                 state
             );
 
+            /*
+             * Рабочее или устанавливаемое соединение
+             * повторно не создаём.
+             */
+
             if (
                 state === "connected" ||
-                state === "connecting" ||
-                state === "new"
+                state === "connecting"
             ) {
 
                 console.log(
                     "[PeerManager] connection already active",
+                    peerId,
+                    state
+                );
+
+                return existing;
+            }
+
+            /*
+             * Состояние new может быть нормальным
+             * во время первоначального согласования.
+             *
+             * Но старое соединение не должно навсегда
+             * блокировать повторные попытки.
+             */
+
+            const age =
+                RTCManager.getConnectionAge(
+                    peerId
+                );
+
+            const staleNew =
+                state === "new" &&
+                age > 20000;
+
+            if (
+                state === "new" &&
+                !staleNew
+            ) {
+
+                console.log(
+                    "[PeerManager] negotiation still starting",
+                    peerId,
+                    "ageMs:",
+                    age
+                );
+
+                return existing;
+            }
+
+            /*
+             * Временно отключённое соединение сохраняем.
+             * Не закрываем его немедленно.
+             */
+
+            if (
+                state === "disconnected"
+            ) {
+
+                console.warn(
+                    "[PeerManager] connection temporarily disconnected; keeping it",
                     peerId
                 );
 
@@ -167,21 +215,31 @@ export const PeerManager = {
             }
 
             /*
-             * Если соединение failed/disconnected,
-             * пока не создаём второе соединение
-             * здесь автоматически.
-             *
-             * Переподключение будет отдельным
-             * следующим этапом.
+             * Очищаем окончательно завершившееся
+             * или зависшее соединение.
              */
+
+            if (
+                state === "failed" ||
+                state === "closed" ||
+                staleNew
+            ) {
+
+                RTCManager.resetPeerConnection(
+                    peerId,
+                    existing,
+                    staleNew
+                        ? "stale-new-timeout"
+                        : `state-${state}`
+                );
+            }
         }
 
         /*
-         * ==========================
-         * DETERMINISTIC INITIATOR
-         * ==========================
+         * Определяем инициатора.
          *
-         * Только одна сторона создаёт offer.
+         * Только одна сторона создаёт Offer.
+         * Правило выбора инициатора не меняем.
          */
 
         const shouldInitiate =
@@ -210,9 +268,7 @@ export const PeerManager = {
         );
 
         /*
-         * ==========================
-         * CREATE SINGLE CONNECTION
-         * ==========================
+         * Создаём RTCPeerConnection.
          */
 
         const connection =
@@ -231,9 +287,7 @@ export const PeerManager = {
         }
 
         /*
-         * ==========================
-         * INITIATOR → OFFER
-         * ==========================
+         * Инициатор создаёт Offer.
          */
 
         if (shouldInitiate) {
@@ -245,6 +299,98 @@ export const PeerManager = {
 
             await RTCManager.createOffer(
                 peerId
+            );
+
+            /*
+             * Вызов WebSocket.send() не гарантирует,
+             * что удалённая сторона получила Offer.
+             *
+             * Если соединение слишком долго остаётся
+             * в состоянии new, разрешаем повторную попытку.
+             */
+
+            const oldTimer =
+                this.retryTimers.get(
+                    peerId
+                );
+
+            if (oldTimer) {
+
+                clearTimeout(
+                    oldTimer
+                );
+            }
+
+            const timer =
+                setTimeout(
+                    () => {
+
+                        this.retryTimers.delete(
+                            peerId
+                        );
+
+                        const current =
+                            RTCManager.getConnection(
+                                peerId
+                            );
+
+                        /*
+                         * Не трогаем другое соединение,
+                         * если оно уже было создано.
+                         */
+
+                        if (
+                            current !== connection ||
+                            current.connectionState !== "new"
+                        ) {
+
+                            return;
+                        }
+
+                        if (
+                            RTCManager.getConnectionAge(
+                                peerId
+                            ) < 25000
+                        ) {
+
+                            return;
+                        }
+
+                        console.warn(
+                            "[PeerManager] offer attempt timed out; retrying",
+                            peerId
+                        );
+
+                        RTCManager.resetPeerConnection(
+                            peerId,
+                            connection,
+                            "offer-timeout"
+                        );
+
+                        /*
+                         * Повторяем попытку, только если
+                         * удалённый пользователь всё ещё
+                         * числится среди онлайн-пользователей.
+                         */
+
+                        if (
+                            this.peers.includes(
+                                peerId
+                            )
+                        ) {
+
+                            this.connect(
+                                peerId
+                            );
+                        }
+
+                    },
+                    25000
+                );
+
+            this.retryTimers.set(
+                peerId,
+                timer
             );
         }
 
