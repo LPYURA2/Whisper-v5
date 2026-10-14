@@ -10,73 +10,40 @@ export const PeerManager = {
 
     retryTimers: new Map(),
 
-    init() {
+    recoveryTimers: new Map(),
 
-        console.log(
-            "[PeerManager] init"
-        );
+    init() {
+        console.log("[PeerManager] init");
     },
 
     updatePeers(peers) {
-
-        const profile =
-            ProfileManager.getProfile();
+        const profile = ProfileManager.getProfile();
 
         if (!profile) {
-
-            console.error(
-                "[PeerManager] profile not found"
-            );
-
+            console.error("[PeerManager] profile not found");
             return;
         }
 
-        const myId =
-            profile.id;
+        const myId = profile.id;
 
-        /*
-         * Убираем собственного PeerID.
-         */
-
-        this.peers =
-            peers.filter(
-                peerId =>
-                    peerId !== myId
-            );
-
-        console.log(
-            "[PeerManager] peers updated",
-            this.peers
+        this.peers = peers.filter(
+            peerId => peerId !== myId
         );
 
-        /*
-         * Signaling сообщает только онлайн-PeerID.
-         *
-         * Автоматически подключаемся только к контактам,
-         * которые сейчас онлайн.
-         */
+        console.log("[PeerManager] peers updated", this.peers);
 
-        const contacts =
-            ContactManager.getContacts();
+        const contacts = ContactManager.getContacts();
 
-        for (
-            const peerId
-            of this.peers
-        ) {
-
-            const isContact =
-                contacts.some(
-                    contact =>
-                        contact.id === peerId
-                );
+        for (const peerId of this.peers) {
+            const isContact = contacts.some(
+                contact => contact.id === peerId
+            );
 
             if (!isContact) {
-
                 console.log(
                     "[PeerManager] peer is online but not a contact",
                     peerId
                 );
-
                 continue;
             }
 
@@ -85,60 +52,34 @@ export const PeerManager = {
                 peerId
             );
 
-            this.connect(
-                peerId
-            );
+            this.connect(peerId);
         }
     },
 
     async connect(peerId) {
-
         if (!peerId) {
-
-            console.error(
-                "[PeerManager] invalid peerId"
-            );
-
+            console.error("[PeerManager] invalid peerId");
             return;
         }
 
-        const profile =
-            ProfileManager.getProfile();
+        const profile = ProfileManager.getProfile();
 
         if (!profile) {
-
-            console.error(
-                "[PeerManager] profile not found"
-            );
-
+            console.error("[PeerManager] profile not found");
             return;
         }
 
-        const myId =
-            profile.id;
+        const myId = profile.id;
 
         if (peerId === myId) {
-
-            console.log(
-                "[PeerManager] cannot connect to self"
-            );
-
+            console.log("[PeerManager] cannot connect to self");
             return;
         }
 
-        /*
-         * Проверяем существующее соединение.
-         */
-
-        const existing =
-            RTCManager.getConnection(
-                peerId
-            );
+        const existing = RTCManager.getConnection(peerId);
 
         if (existing) {
-
-            const state =
-                existing.connectionState;
+            const state = existing.connectionState;
 
             console.log(
                 "[PeerManager] existing connection",
@@ -146,85 +87,43 @@ export const PeerManager = {
                 state
             );
 
-            /*
-             * Рабочее или устанавливаемое соединение
-             * повторно не создаём.
-             */
-
-            if (
-                state === "connected" ||
-                state === "connecting"
-            ) {
-
+            if (state === "connected" || state === "connecting") {
                 console.log(
                     "[PeerManager] connection already active",
                     peerId,
                     state
                 );
-
                 return existing;
             }
 
-            /*
-             * Состояние new может быть нормальным
-             * во время первоначального согласования.
-             *
-             * Но старое соединение не должно навсегда
-             * блокировать повторные попытки.
-             */
-
-            const age =
-                RTCManager.getConnectionAge(
-                    peerId
-                );
+            const age = RTCManager.getConnectionAge(peerId);
 
             const staleNew =
-                state === "new" &&
-                age > 20000;
+                state === "new" && age > 20000;
 
-            if (
-                state === "new" &&
-                !staleNew
-            ) {
-
+            if (state === "new" && !staleNew) {
                 console.log(
                     "[PeerManager] negotiation still starting",
                     peerId,
                     "ageMs:",
                     age
                 );
-
                 return existing;
             }
 
-            /*
-             * Временно отключённое соединение сохраняем.
-             * Не закрываем его немедленно.
-             */
-
-            if (
-                state === "disconnected"
-            ) {
-
+            if (state === "disconnected") {
                 console.warn(
                     "[PeerManager] connection temporarily disconnected; keeping it",
                     peerId
                 );
-
                 return existing;
             }
-
-            /*
-             * Очищаем окончательно завершившееся
-             * или зависшее соединение.
-             */
 
             if (
                 state === "failed" ||
                 state === "closed" ||
                 staleNew
             ) {
-
                 RTCManager.resetPeerConnection(
                     peerId,
                     existing,
@@ -235,174 +134,232 @@ export const PeerManager = {
             }
         }
 
-        /*
-         * Определяем инициатора.
-         *
-         * Только одна сторона создаёт Offer.
-         * Правило выбора инициатора не меняем.
-         */
-
         const shouldInitiate =
-            myId.localeCompare(
-                peerId
-            ) < 0;
+            myId.localeCompare(peerId) < 0;
 
-        console.log(
-            "[PeerManager] connect",
-            peerId
-        );
-
-        console.log(
-            "[PeerManager] localId",
-            myId
-        );
-
-        console.log(
-            "[PeerManager] peerId",
-            peerId
-        );
-
-        console.log(
-            "[PeerManager] initiator",
-            shouldInitiate
-        );
-
-        /*
-         * Создаём RTCPeerConnection.
-         */
+        console.log("[PeerManager] connect", peerId);
+        console.log("[PeerManager] localId", myId);
+        console.log("[PeerManager] peerId", peerId);
+        console.log("[PeerManager] initiator", shouldInitiate);
 
         const connection =
-            RTCManager.createPeerConnection(
-                peerId
-            );
+            RTCManager.createPeerConnection(peerId);
 
         if (!connection) {
-
             console.error(
                 "[PeerManager] failed to create connection",
                 peerId
             );
-
             return;
         }
 
-        /*
-         * Инициатор создаёт Offer.
-         */
-
         if (shouldInitiate) {
+            console.log("[PeerManager] creating offer", peerId);
 
-            console.log(
-                "[PeerManager] creating offer",
-                peerId
-            );
+            await RTCManager.createOffer(peerId);
 
-            await RTCManager.createOffer(
-                peerId
-            );
+            const oldTimer = this.retryTimers.get(peerId);
 
-            /*
-             * Вызов WebSocket.send() не гарантирует,
-             * что удалённая сторона получила Offer.
-             *
-             * Если соединение слишком долго остаётся
-             * в состоянии new, разрешаем повторную попытку.
-             */
+            if (oldTimer) {
+                clearTimeout(oldTimer);
+            }
 
-            const oldTimer =
-                this.retryTimers.get(
+            const timer = setTimeout(() => {
+                this.retryTimers.delete(peerId);
+
+                const current = RTCManager.getConnection(peerId);
+
+                if (
+                    !current ||
+                    current !== connection ||
+                    current.connectionState !== "new"
+                ) {
+                    return;
+                }
+
+                if (RTCManager.getConnectionAge(peerId) < 25000) {
+                    return;
+                }
+
+                console.warn(
+                    "[PeerManager] offer attempt timed out; retrying",
                     peerId
                 );
 
-            if (oldTimer) {
-
-                clearTimeout(
-                    oldTimer
-                );
-            }
-
-            const timer =
-                setTimeout(
-                    () => {
-
-                        this.retryTimers.delete(
-                            peerId
-                        );
-
-                        const current =
-                            RTCManager.getConnection(
-                                peerId
-                            );
-
-                        /*
-                         * Не трогаем другое соединение,
-                         * если оно уже было создано.
-                         */
-
-                        if (
-                            current !== connection ||
-                            current.connectionState !== "new"
-                        ) {
-
-                            return;
-                        }
-
-                        if (
-                            RTCManager.getConnectionAge(
-                                peerId
-                            ) < 25000
-                        ) {
-
-                            return;
-                        }
-
-                        console.warn(
-                            "[PeerManager] offer attempt timed out; retrying",
-                            peerId
-                        );
-
-                        RTCManager.resetPeerConnection(
-                            peerId,
-                            connection,
-                            "offer-timeout"
-                        );
-
-                        /*
-                         * Повторяем попытку, только если
-                         * удалённый пользователь всё ещё
-                         * числится среди онлайн-пользователей.
-                         */
-
-                        if (
-                            this.peers.includes(
-                                peerId
-                            )
-                        ) {
-
-                            this.connect(
-                                peerId
-                            );
-                        }
-
-                    },
-                    25000
+                RTCManager.resetPeerConnection(
+                    peerId,
+                    connection,
+                    "offer-timeout"
                 );
 
-            this.retryTimers.set(
-                peerId,
-                timer
-            );
+                if (this.peers.includes(peerId)) {
+                    this.connect(peerId);
+                }
+            }, 25000);
+
+            this.retryTimers.set(peerId, timer);
         }
 
         return connection;
     },
 
-    getPeers() {
+    handleConnectionState(peerId, connection, state) {
+        const current = RTCManager.getConnection(peerId);
 
+        if (current !== connection) {
+            console.log(
+                "[PeerManager] ignoring state from stale connection",
+                peerId,
+                state
+            );
+            return;
+        }
+
+        if (state === "connected") {
+            const recoveryTimer = this.recoveryTimers.get(peerId);
+
+            if (recoveryTimer) {
+                clearTimeout(recoveryTimer);
+            }
+
+            this.recoveryTimers.delete(peerId);
+
+            const retryTimer = this.retryTimers.get(peerId);
+
+            if (retryTimer) {
+                clearTimeout(retryTimer);
+            }
+
+            this.retryTimers.delete(peerId);
+            return;
+        }
+
+        if (state === "disconnected") {
+            if (this.recoveryTimers.has(peerId)) {
+                return;
+            }
+
+            console.warn(
+                "[PeerManager] temporary disconnect; waiting before reset",
+                peerId
+            );
+
+            const timer = setTimeout(() => {
+                this.recoveryTimers.delete(peerId);
+
+                if (RTCManager.getConnection(peerId) !== connection) {
+                    return;
+                }
+
+                if (connection.connectionState !== "disconnected") {
+                    return;
+                }
+
+                console.warn(
+                    "[PeerManager] disconnect grace period expired",
+                    peerId
+                );
+
+                this.recover(
+                    peerId,
+                    connection,
+                    "disconnected-timeout"
+                );
+            }, 12000);
+
+            this.recoveryTimers.set(peerId, timer);
+            return;
+        }
+
+        if (state === "failed" || state === "closed") {
+            const recoveryTimer = this.recoveryTimers.get(peerId);
+
+            if (recoveryTimer) {
+                clearTimeout(recoveryTimer);
+            }
+
+            this.recoveryTimers.delete(peerId);
+
+            this.recover(
+                peerId,
+                connection,
+                `state-${state}`
+            );
+        }
+    },
+
+    recover(peerId, connection, reason) {
+        if (RTCManager.getConnection(peerId) !== connection) {
+            console.log(
+                "[PeerManager] recovery skipped; connection changed",
+                peerId,
+                reason
+            );
+            return;
+        }
+
+        const oldRetryTimer = this.retryTimers.get(peerId);
+
+        if (oldRetryTimer) {
+            clearTimeout(oldRetryTimer);
+        }
+
+        this.retryTimers.delete(peerId);
+
+        const reset = RTCManager.resetPeerConnection(
+            peerId,
+            connection,
+            reason
+        );
+
+        if (!reset) {
+            return;
+        }
+
+        if (!this.peers.includes(peerId)) {
+            console.log(
+                "[PeerManager] peer is not currently online; waiting for peers update",
+                peerId
+            );
+            return;
+        }
+
+        if (!window.wsClient || !window.wsClient.connected) {
+            console.log(
+                "[PeerManager] signaling not ready; waiting for peers update",
+                peerId
+            );
+            return;
+        }
+
+        const oldTimer = this.recoveryTimers.get(peerId);
+
+        if (oldTimer) {
+            clearTimeout(oldTimer);
+        }
+
+        const timer = setTimeout(() => {
+            this.recoveryTimers.delete(peerId);
+
+            if (RTCManager.getConnection(peerId)) {
+                return;
+            }
+
+            console.log(
+                "[PeerManager] starting recovery attempt",
+                peerId,
+                reason
+            );
+
+            this.connect(peerId);
+        }, 1000);
+
+        this.recoveryTimers.set(peerId, timer);
+    },
+
+    getPeers() {
         return this.peers;
     }
-
 };
 
-window.PeerManager =
-    PeerManager;
+window.PeerManager = PeerManager;
