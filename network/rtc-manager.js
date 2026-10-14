@@ -1,3 +1,4 @@
+
 console.log("[RTC] NEW VERSION LOADED");
 
 import { UI } from "../ui/ui.js";
@@ -8,6 +9,8 @@ export const RTCManager = {
     peers: new Map(),
 
     connections: new Map(),
+
+    connectionCreatedAt: new Map(),
 
     channels: new Map(),
 
@@ -114,6 +117,11 @@ export const RTCManager = {
         this.connections.set(
             peerId,
             connection
+        );
+
+        this.connectionCreatedAt.set(
+            peerId,
+            Date.now()
         );
 
         /*
@@ -513,7 +521,7 @@ export const RTCManager = {
                     "[RTC] DataChannel ERROR",
                     peerId,
                     error
-                    );
+                );
             };
 
         /*
@@ -578,6 +586,146 @@ export const RTCManager = {
         return this.connections.get(
             peerId
         );
+    },
+
+    /*
+     * =========================================================
+     * CONNECTION AGE
+     * =========================================================
+     */
+
+    getConnectionAge(peerId) {
+
+        const connection =
+            this.connections.get(peerId);
+
+        const createdAt =
+            this.connectionCreatedAt.get(peerId);
+
+        if (
+            !connection ||
+            createdAt === undefined
+        ) {
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            Date.now() - createdAt
+        );
+    },
+
+    /*
+     * =========================================================
+     * RESET PEER CONNECTION
+     * =========================================================
+     */
+
+    resetPeerConnection(
+        peerId,
+        expectedConnection,
+        reason = "manual-reset"
+    ) {
+
+        const connection =
+            this.connections.get(peerId);
+
+        if (!connection) {
+            return false;
+        }
+
+        /*
+         * Не позволяем старому таймеру закрыть новое соединение.
+         */
+
+        if (
+            expectedConnection &&
+            connection !== expectedConnection
+        ) {
+
+            console.warn(
+                "[RTC] reset skipped: connection instance changed",
+                peerId,
+                reason
+            );
+
+            return false;
+        }
+
+        console.warn(
+            "[RTC] resetting peer connection",
+            peerId,
+            reason
+        );
+
+        const channel =
+            this.channels.get(peerId);
+
+        if (channel) {
+
+            this.channels.delete(peerId);
+
+            channel.onopen = null;
+            channel.onclose = null;
+            channel.onerror = null;
+            channel.onmessage = null;
+
+            try {
+
+                if (channel.readyState !== "closed") {
+                    channel.close();
+                }
+
+            } catch (error) {
+
+                console.warn(
+                    "[RTC] failed to close old DataChannel",
+                    peerId,
+                    error
+                );
+            }
+        }
+
+        if (
+            this.connections.get(peerId) !== connection
+        ) {
+            return false;
+        }
+
+        this.connections.delete(peerId);
+        this.connectionCreatedAt.delete(peerId);
+
+        /*
+         * Не переносим ICE-кандидаты старого соединения
+         * в новое соединение.
+         */
+
+        this.candidateQueues.delete(peerId);
+        this.pendingCandidates.delete(peerId);
+
+        connection.onicecandidate = null;
+        connection.ondatachannel = null;
+        connection.onconnectionstatechange = null;
+        connection.oniceconnectionstatechange = null;
+        connection.onsignalingstatechange = null;
+        connection.onicegatheringstatechange = null;
+
+        try {
+
+            if (connection.signalingState !== "closed") {
+                connection.close();
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "[RTC] failed to close old RTCPeerConnection",
+                peerId,
+                error
+            );
+        }
+
+        return true;
     },
 
     /*
@@ -866,6 +1014,29 @@ export const RTCManager = {
                 this.getConnection(
                     peerId
                 );
+
+            /*
+             * Новый offer нельзя применять к закрытому
+             * или упавшему RTCPeerConnection.
+             */
+
+            if (
+                connection &&
+                (
+                    connection.connectionState === "failed" ||
+                    connection.connectionState === "closed" ||
+                    connection.signalingState === "closed"
+                )
+            ) {
+
+                this.resetPeerConnection(
+                    peerId,
+                    connection,
+                    "incoming-offer-on-dead-connection"
+                );
+
+                connection = null;
+            }
 
             if (!connection) {
 
