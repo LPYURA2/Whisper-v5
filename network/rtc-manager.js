@@ -26,6 +26,129 @@ export const RTCManager = {
      */
     candidateQueues: new Map(),
 
+    // Internal ownership only; no operation tokens are put on the wire.
+    onPeerEvent: null,
+    operationOwners: new WeakMap(),
+    channelOwners: new WeakMap(),
+    channelLabels: new WeakMap(),
+    nextChannelId: 0,
+    answerJobs: new WeakMap(),
+
+    bindOperation(connection, operation) {
+        operation.pc = connection;
+        this.operationOwners.set(connection, operation);
+    },
+
+    isCurrent(peerId, connection, operation = this.operationOwners.get(connection)) {
+        return !!connection && this.connections.get(peerId) === connection &&
+            connection.signalingState !== "closed" &&
+            (!operation || (operation.active && operation.pc === connection && operation.valid()));
+    },
+
+    notifyPeer(peerId, connection, type, channel = null) {
+        const operation = this.operationOwners.get(connection);
+        if (this.connections.get(peerId) !== connection || (operation && !operation.active)) return;
+        console.log("[RTC] lifecycle", peerId, "pc-op", operation?.label, "dc", this.channelLabels.get(channel), type);
+        this.onPeerEvent?.({ peerId, connection, channel, type });
+    },
+
+    getChannel(peerId, connection = this.getConnection(peerId)) {
+        const channel = this.channels.get(peerId);
+        return channel && this.channelOwners.get(channel) === connection ? channel : null;
+    },
+
+    canRepairChannel(connection) {
+        const local = connection.currentLocalDescription || connection.localDescription;
+        const remote = connection.currentRemoteDescription || connection.remoteDescription;
+        const data = description => /^m=application\s+(?!0(?:\s|$))\d+\s/m.test(description?.sdp || "");
+        return connection.connectionState === "connected" && connection.signalingState === "stable" &&
+            connection.sctp?.state === "connected" && data(local) && data(remote);
+    },
+
+    createChatChannel(peerId, connection) {
+        if (!this.isCurrent(peerId, connection) ||
+            ProfileManager.getProfile().id.localeCompare(peerId) >= 0) return null;
+        const existing = this.getChannel(peerId, connection);
+        if (existing && existing.readyState !== "closed") return existing;
+        console.log("[RTC] creating DataChannel as initiator", peerId);
+        const channel = connection.createDataChannel("chat");
+        this.setupDataChannel(peerId, channel, true, connection);
+        return channel;
+    },
+
+    describeRemote(description) {
+        const sdp = description?.sdp || "";
+        const origin = /^o=\S+\s+(\S+)/m.exec(sdp);
+        const sections = sdp.split(/(?=^m=)/m);
+        const sessionValue = name => new RegExp("^a=" + name + ":([^\\r\\n]+)", "m").exec(sections[0])?.[1];
+        const ice = [];
+        let index = 0;
+        for (const section of sections) {
+            if (!section.startsWith("m=")) continue;
+            const value = name => new RegExp("^a=" + name + ":([^\\r\\n]+)", "m").exec(section)?.[1];
+            if (/^m=application\s+(?!0(?:\s|$))\d+\s/.test(section)) {
+                ice.push({ index, mid: value("mid"), ufrag: value("ice-ufrag") || sessionValue("ice-ufrag"),
+                    pwd: value("ice-pwd") || sessionValue("ice-pwd") });
+            }
+            index += 1;
+        }
+        const sessionId = origin?.[1] || null;
+        const iceKey = JSON.stringify(ice);
+        return { sessionId, ice, iceKey, key: sessionId ? sessionId + ":" + iceKey : null };
+    },
+
+    candidateUfrag(candidate) {
+        return candidate?.usernameFragment || /(?:^|\s)ufrag\s+(\S+)/.exec(candidate?.candidate || "")?.[1] || null;
+    },
+
+    candidateMatches(connection, candidate) {
+        const ufrag = this.candidateUfrag(candidate);
+        if (!ufrag) return true; // Unknown ownership stays subject to the browser and limitation G.
+        const ice = this.describeRemote(connection.remoteDescription).ice;
+        const section = ice.find(item => candidate.sdpMid != null ? item.mid === candidate.sdpMid :
+            candidate.sdpMLineIndex != null ? item.index === candidate.sdpMLineIndex : true);
+        if (section?.ufrag) return section.ufrag === ufrag;
+        const known = ice.map(item => item.ufrag).filter(Boolean);
+        return !known.length || known.includes(ufrag);
+    },
+
+    pruneCandidates(peerId) {
+        const now = performance.now();
+        const entries = [...(this.pendingCandidates.get(peerId) || []), ...(this.candidateQueues.get(peerId) || [])];
+        const keep = new Set(entries.filter(entry => now - entry.at < 60000)
+            .sort((a, b) => a.at - b.at).slice(-256));
+        for (const map of [this.pendingCandidates, this.candidateQueues]) {
+            const retained = (map.get(peerId) || []).filter(entry => keep.has(entry));
+            if (retained.length) map.set(peerId, retained);
+            else map.delete(peerId);
+        }
+    },
+
+    queueCandidate(peerId, candidate, connection, pending = false) {
+        const map = pending ? this.pendingCandidates : this.candidateQueues;
+        const entries = map.get(peerId) || [];
+        entries.push({ candidate, ufrag: this.candidateUfrag(candidate), at: performance.now(), owner: connection });
+        map.set(peerId, entries);
+        this.pruneCandidates(peerId);
+    },
+
+    preserveFutureCandidates(peerId, connection) {
+        this.pruneCandidates(peerId);
+        const description = connection.remoteDescription || this.operationOwners.get(connection)?.remoteSdp;
+        const oldUfrags = new Set(this.describeRemote(description).ice.map(item => item.ufrag).filter(Boolean));
+        const retained = [...(this.pendingCandidates.get(peerId) || []), ...(this.candidateQueues.get(peerId) || [])]
+            .filter(entry => entry.ufrag && !oldUfrags.has(entry.ufrag));
+        this.candidateQueues.delete(peerId);
+        if (retained.length) this.pendingCandidates.set(peerId, retained);
+        else this.pendingCandidates.delete(peerId);
+    },
+
+    canSignal(operation) {
+        const client = window.wsClient;
+        return !!client?.connected && (!operation ||
+            (operation.signalingClient === client && operation.signalingSocket === client.socket));
+    },
+
     init() {
 
         console.log(
@@ -39,7 +162,7 @@ export const RTCManager = {
      * =========================================================
      */
 
-    createPeerConnection(peerId) {
+    createPeerConnection(peerId, operation = null) {
 
         console.log(
             "[RTCManager] createPeerConnection",
@@ -119,6 +242,8 @@ export const RTCManager = {
             connection
         );
 
+        if (operation) this.bindOperation(connection, operation);
+
         this.connectionCreatedAt.set(
             peerId,
             Date.now()
@@ -153,7 +278,8 @@ export const RTCManager = {
 
         connection.onsignalingstatechange =
             () => {
-
+                if (!this.isCurrent(peerId, connection)) return;
+                this.notifyPeer(peerId, connection, "signaling");
                 console.log(
                     "[RTC] signalingState",
                     peerId,
@@ -163,7 +289,7 @@ export const RTCManager = {
 
         connection.onicegatheringstatechange =
             () => {
-
+                if (!this.isCurrent(peerId, connection)) return;
                 console.log(
                     "[RTC] iceGatheringState",
                     peerId,
@@ -173,7 +299,8 @@ export const RTCManager = {
 
         connection.oniceconnectionstatechange =
             () => {
-
+                if (this.connections.get(peerId) !== connection) return;
+                this.notifyPeer(peerId, connection, "ice");
                 console.log(
                     "[RTC] iceConnectionState",
                     peerId,
@@ -183,7 +310,8 @@ export const RTCManager = {
 
         connection.onconnectionstatechange =
             () => {
-
+                if (this.connections.get(peerId) !== connection) return;
+                this.notifyPeer(peerId, connection, "connection");
                 console.log(
                     "[RTC] connectionState",
                     peerId,
@@ -243,7 +371,10 @@ export const RTCManager = {
 
         connection.onicecandidate =
             (event) => {
-
+                const owner = this.operationOwners.get(connection);
+                if (!this.isCurrent(peerId, connection, owner)) return;
+                // A live PC may emit fresh ICE after WS reconnect; only unfinished SDP is socket-bound.
+                if (owner?.establishing ? !this.canSignal(owner) : !window.wsClient?.connected) return;
                 if (event.candidate) {
 
                     console.log(
@@ -294,9 +425,13 @@ export const RTCManager = {
          * Initiator does NOT use this to create another channel.
          */
 
+        connection.onnegotiationneeded = () => {
+            if (this.isCurrent(peerId, connection)) this.notifyPeer(peerId, connection, "negotiationneeded");
+        };
+
         connection.ondatachannel =
             (event) => {
-
+                if (!this.isCurrent(peerId, connection)) { event.channel.close(); return; }
                 console.log(
                     "[RTC] incoming DataChannel",
                     peerId,
@@ -309,7 +444,8 @@ export const RTCManager = {
                 this.setupDataChannel(
                     peerId,
                     incomingChannel,
-                    false
+                    false,
+                    connection
                 );
             };
 
@@ -321,70 +457,9 @@ export const RTCManager = {
          * Only initiator creates "chat".
          */
 
-        if (isInitiator) {
-
-            console.log(
-                "[RTC] creating DataChannel as initiator",
-                peerId
-            );
-
-            const channel =
-                connection.createDataChannel(
-                    "chat"
-                );
-
-            this.setupDataChannel(
-                peerId,
-                channel,
-                true
-            );
-
-        } else {
-
-            console.log(
-                "[RTC] waiting for incoming DataChannel",
-                peerId
-            );
-        }
-
-        /*
-         * =====================================================
-         * RESTORE EARLY ICE
-         * =====================================================
-         *
-         * Candidate could have arrived before the connection
-         * existed.
-         */
-
-        const earlyCandidates =
-            this.pendingCandidates.get(
-                peerId
-            );
-
-        if (
-            earlyCandidates &&
-            earlyCandidates.length > 0
-        ) {
-
-            console.log(
-                "[RTC] restoring early ICE candidates",
-                peerId,
-                earlyCandidates.length
-            );
-
-            const queue =
-                this.candidateQueues.get(
-                    peerId
-                );
-
-            queue.push(
-                ...earlyCandidates
-            );
-
-            this.pendingCandidates.delete(
-                peerId
-            );
-        }
+        if (isInitiator) this.createChatChannel(peerId, connection);
+        else console.log("[RTC] waiting for incoming DataChannel", peerId);
+        this.pruneCandidates(peerId);
 
         console.log(
             "[RTCManager] connection ready",
@@ -403,8 +478,14 @@ export const RTCManager = {
     setupDataChannel(
         peerId,
         channel,
-        local
+        local,
+        connection = this.getConnection(peerId)
     ) {
+        if (!this.isCurrent(peerId, connection)) { channel.close(); return; }
+        this.channelOwners.set(channel, connection);
+        this.channelLabels.set(channel, ++this.nextChannelId);
+        const current = () => this.isCurrent(peerId, connection) && this.channels.get(peerId) === channel;
+
 
         /*
          * Если у нас уже есть открытый/открывающийся канал,
@@ -464,7 +545,8 @@ export const RTCManager = {
 
         channel.onopen =
             () => {
-
+                if (!current()) return;
+                this.notifyPeer(peerId, connection, "channel-open", channel);
                 console.log(
                     "[RTC] DATA CHANNEL OPEN",
                     peerId
@@ -483,9 +565,13 @@ export const RTCManager = {
          * =====================================================
          */
 
+        if ("onclosing" in channel) channel.onclosing = () => {
+            if (current()) this.notifyPeer(peerId, connection, "channel-closing", channel);
+        };
+
         channel.onclose =
             () => {
-
+                if (!current()) return;
                 console.warn(
                     "[RTC] DataChannel CLOSED",
                     peerId
@@ -506,6 +592,7 @@ export const RTCManager = {
                         peerId
                     );
                 }
+                this.notifyPeer(peerId, connection, "channel-close", channel);
             };
 
         /*
@@ -516,7 +603,8 @@ export const RTCManager = {
 
         channel.onerror =
             (error) => {
-
+                if (!current()) return;
+                this.notifyPeer(peerId, connection, "channel-error", channel);
                 console.error(
                     "[RTC] DataChannel ERROR",
                     peerId,
@@ -532,7 +620,7 @@ export const RTCManager = {
 
         channel.onmessage =
             (event) => {
-
+                if (!current()) return;
                 try {
 
                     const packet =
@@ -658,8 +746,10 @@ export const RTCManager = {
             reason
         );
 
-        const channel =
-            this.channels.get(peerId);
+        const operation = this.operationOwners.get(connection);
+        if (operation) operation.active = false;
+        this.preserveFutureCandidates(peerId, connection);
+        const channel = this.getChannel(peerId, connection);
 
         if (channel) {
 
@@ -667,6 +757,7 @@ export const RTCManager = {
 
             channel.onopen = null;
             channel.onclose = null;
+            channel.onclosing = null;
             channel.onerror = null;
             channel.onmessage = null;
 
@@ -700,9 +791,9 @@ export const RTCManager = {
          * в новое соединение.
          */
 
-        this.candidateQueues.delete(peerId);
-        this.pendingCandidates.delete(peerId);
+        // Distinguishable early ICE for a different SDP was retained above.
 
+        connection.onnegotiationneeded = null;
         connection.onicecandidate = null;
         connection.ondatachannel = null;
         connection.onconnectionstatechange = null;
@@ -734,587 +825,138 @@ export const RTCManager = {
      * =========================================================
      */
 
-    async createOffer(peerId) {
-
+    async createOffer(peerId, connection = this.getConnection(peerId), operation = this.operationOwners.get(connection)) {
         try {
-
-            const connection =
-                this.getConnection(
-                    peerId
-                );
-
-            if (!connection) {
-
-                console.error(
-                    "[RTC] createOffer: no connection",
-                    peerId
-                );
-
-                return null;
-            }
-
-            /*
-             * Не создаём новый offer,
-             * если signaling state уже не stable.
-             */
-
-            if (
-                connection.signalingState !==
-                "stable"
-            ) {
-
-                console.warn(
-                    "[RTC] cannot create offer in state",
-                    peerId,
-                    connection.signalingState
-                );
-
-                return null;
-            }
-
-            console.log(
-                "[RTC] creating offer",
-                peerId
-            );
-
-            const offer =
-                await connection.createOffer();
-
-            console.log(
-                "[RTC] offer created",
-                peerId
-            );
-
-            await connection.setLocalDescription(
-                offer
-            );
-
-            console.log(
-                "[RTC] local description set",
-                peerId
-            );
-
-            const sent =
-                window.wsClient.send({
-
-                    type:
-                        "offer",
-
-                    target:
-                        peerId,
-
-                    from:
-                        ProfileManager
-                            .getProfile()
-                            .id,
-
-                    offer:
-                        connection.localDescription
-                });
-
-            if (!sent) {
-
-                console.error(
-                    "[RTC] offer could not be sent",
-                    peerId
-                );
-
-                return null;
-            }
-
-            console.log(
-                "[RTC] offer sent",
-                peerId
-            );
-
+            if (!this.isCurrent(peerId, connection, operation) || connection.signalingState !== "stable") return null;
+            const offer = await connection.createOffer();
+            if (!this.isCurrent(peerId, connection, operation)) return null;
+            await connection.setLocalDescription(offer);
+            if (!this.isCurrent(peerId, connection, operation) || !this.canSignal(operation)) return null;
+            const sent = window.wsClient.send({
+                type: "offer", target: peerId, from: ProfileManager.getProfile().id,
+                offer: connection.localDescription
+            });
+            if (!sent) return null;
+            console.log("[RTC] offer sent", peerId);
             return offer;
-
         } catch (error) {
-
-            console.error(
-                "[RTC] createOffer failed",
-                peerId,
-                error
-            );
-
+            console.warn("[RTC] createOffer failed", peerId, error);
             return null;
         }
     },
 
-    /*
-     * =========================================================
-     * SET REMOTE DESCRIPTION
-     * =========================================================
-     */
-
-    async setRemoteDescription(
-        peerId,
-        sdp
-    ) {
-
-        const connection =
-            this.getConnection(
-                peerId
-            );
-
-        if (!connection) {
-
-            console.error(
-                "[RTC] setRemoteDescription: no connection",
-                peerId
-            );
-
-            return false;
-        }
-
+    async setRemoteDescription(peerId, sdp, connection = this.getConnection(peerId), operation = this.operationOwners.get(connection)) {
         try {
-
-            await connection.setRemoteDescription(
-                new RTCSessionDescription(
-                    sdp
-                )
-            );
-
-            console.log(
-                "[RTC] remote description set",
-                peerId
-            );
-
-            /*
-             * Теперь можно применить ICE candidates,
-             * которые ждали remoteDescription.
-             */
-
-            await this.flushCandidateQueue(
-                peerId
-            );
-
-            return true;
-
+            if (!this.isCurrent(peerId, connection, operation)) return false;
+            await connection.setRemoteDescription(new RTCSessionDescription(sdp));
+            if (!this.isCurrent(peerId, connection, operation)) return false;
+            console.log("[RTC] remote description set", peerId);
+            await this.flushCandidateQueue(peerId, connection, operation);
+            return this.isCurrent(peerId, connection, operation);
         } catch (error) {
-
-            console.error(
-                "[RTC] setRemoteDescription failed",
-                peerId,
-                error
-            );
-
+            console.warn("[RTC] setRemoteDescription failed", peerId, error);
             return false;
         }
     },
 
-    /*
-     * =========================================================
-     * CREATE ANSWER
-     * =========================================================
-     */
-
-    async createAnswer(peerId) {
-
-        const connection =
-            this.getConnection(
-                peerId
-            );
-
-        if (!connection) {
-
-            console.error(
-                "[RTC] createAnswer: no connection",
-                peerId
-            );
-
-            return null;
-        }
-
+    async createAnswer(peerId, connection = this.getConnection(peerId), operation = this.operationOwners.get(connection)) {
         try {
-
-            console.log(
-                "[RTC] creating answer",
-                peerId
-            );
-
-            const answer =
-                await connection.createAnswer();
-
-            await connection.setLocalDescription(
-                answer
-            );
-
-            console.log(
-                "[RTC] answer local description set",
-                peerId
-            );
-
-            const sent =
-                window.wsClient.send({
-
-                    type:
-                        "answer",
-
-                    target:
-                        peerId,
-
-                    from:
-                        ProfileManager
-                            .getProfile()
-                            .id,
-
-                    answer:
-                        connection.localDescription
-                });
-
-            if (!sent) {
-
-                console.error(
-                    "[RTC] answer could not be sent",
-                    peerId
-                );
-
-                return null;
-            }
-
-            console.log(
-                "[RTC] answer sent",
-                peerId
-            );
-
+            if (!this.isCurrent(peerId, connection, operation) || connection.signalingState !== "have-remote-offer") return null;
+            const answer = await connection.createAnswer();
+            if (!this.isCurrent(peerId, connection, operation)) return null;
+            await connection.setLocalDescription(answer);
+            if (!this.isCurrent(peerId, connection, operation) || !this.canSignal(operation)) return null;
+            const sent = window.wsClient.send({
+                type: "answer", target: peerId, from: ProfileManager.getProfile().id,
+                answer: connection.localDescription
+            });
+            if (!sent) return null;
+            console.log("[RTC] answer sent", peerId);
             return answer;
-
         } catch (error) {
-
-            console.error(
-                "[RTC] createAnswer failed",
-                peerId,
-                error
-            );
-
+            console.warn("[RTC] createAnswer failed", peerId, error);
             return null;
         }
     },
 
-    /*
-     * =========================================================
-     * HANDLE OFFER
-     * =========================================================
-     */
+    async handleOffer(peerId, offer, connection = this.getConnection(peerId), operation = this.operationOwners.get(connection)) {
+        if (!await this.setRemoteDescription(peerId, offer, connection, operation)) return false;
+        if (!this.isCurrent(peerId, connection, operation)) return false;
+        return !!await this.createAnswer(peerId, connection, operation);
+    },
 
-    async handleOffer(
-        peerId,
-        offer
-    ) {
+    handleAnswer(peerId, answer) {
+        const connection = this.getConnection(peerId);
+        const operation = this.operationOwners.get(connection);
+        if (!this.isCurrent(peerId, connection, operation) || connection.signalingState !== "have-local-offer") {
+            return Promise.resolve(false);
+        }
+        const existing = this.answerJobs.get(connection);
+        if (existing) return existing.promise;
+        const job = {};
+        this.answerJobs.set(connection, job);
+        job.promise = this.setRemoteDescription(peerId, answer, connection, operation).then(result => {
+            if (this.isCurrent(peerId, connection, operation)) this.notifyPeer(peerId, connection, result ? "answer" : "sdp-error");
+            return result;
+        }).finally(() => {
+            if (this.answerJobs.get(connection) === job) this.answerJobs.delete(connection);
+        });
+        return job.promise;
+    },
 
-        console.log(
-            "[RTC] handling offer",
-            peerId
-        );
-
+    async addIceCandidate(peerId, candidate) {
+        if (typeof peerId !== "string" || !peerId || !candidate) return;
+        this.pruneCandidates(peerId);
+        const connection = this.getConnection(peerId);
+        const operation = this.operationOwners.get(connection);
+        if (!this.isCurrent(peerId, connection, operation)) {
+            this.queueCandidate(peerId, candidate, null, true);
+            return;
+        }
+        if (!connection.remoteDescription) {
+            this.queueCandidate(peerId, candidate, connection);
+            return;
+        }
+        if (!this.candidateMatches(connection, candidate)) {
+            this.queueCandidate(peerId, candidate, null, true);
+            return;
+        }
         try {
-
-            let connection =
-                this.getConnection(
-                    peerId
-                );
-
-            /*
-             * Новый offer нельзя применять к закрытому
-             * или упавшему RTCPeerConnection.
-             */
-
-            if (
-                connection &&
-                (
-                    connection.connectionState === "failed" ||
-                    connection.connectionState === "closed" ||
-                    connection.signalingState === "closed"
-                )
-            ) {
-
-                this.resetPeerConnection(
-                    peerId,
-                    connection,
-                    "incoming-offer-on-dead-connection"
-                );
-
-                connection = null;
-            }
-
-            if (!connection) {
-
-                console.log(
-                    "[RTC] creating receiver connection",
-                    peerId
-                );
-
-                connection =
-                    this.createPeerConnection(
-                        peerId
-                    );
-            }
-
-            const success =
-                await this.setRemoteDescription(
-                    peerId,
-                    offer
-                );
-
-            if (!success) {
-
-                console.error(
-                    "[RTC] failed to set remote offer",
-                    peerId
-                );
-
-                return;
-            }
-
-            console.log(
-                "[RTC] remote offer set",
-                peerId
-            );
-
-            await this.createAnswer(
-                peerId
-            );
-
+            if (!this.isCurrent(peerId, connection, operation)) return;
+            await connection.addIceCandidate(new RTCIceCandidate(candidate));
+            if (this.isCurrent(peerId, connection, operation)) console.log("[RTC] ICE candidate added", peerId);
         } catch (error) {
-
-            console.error(
-                "[RTC] handleOffer failed",
-                peerId,
-                error
-            );
+            console.warn("[RTC] addIceCandidate failed", peerId, error);
         }
     },
 
-    /*
-     * =========================================================
-     * HANDLE ANSWER
-     * =========================================================
-     */
-
-    async handleAnswer(
-        peerId,
-        answer
-    ) {
-
-        console.log(
-            "[RTC] handling answer",
-            peerId
-        );
-
-        await this.setRemoteDescription(
-            peerId,
-            answer
-        );
-    },
-
-    /*
-     * =========================================================
-     * ADD ICE CANDIDATE
-     * =========================================================
-     */
-
-    async addIceCandidate(
-        peerId,
-        candidate
-    ) {
-
-        /*
-         * Если connection ещё не существует,
-         * сохраняем candidate.
-         */
-
-        const connection =
-            this.getConnection(
-                peerId
-            );
-
-        if (!connection) {
-
-            console.log(
-                "[RTC] queueing ICE: no connection yet",
-                peerId
-            );
-
-            if (
-                !this.pendingCandidates.has(
-                    peerId
-                )
-            ) {
-
-                this.pendingCandidates.set(
-                    peerId,
-                    []
-                );
+    async flushCandidateQueue(peerId, connection = this.getConnection(peerId), operation = this.operationOwners.get(connection)) {
+        if (!this.isCurrent(peerId, connection, operation) || !connection.remoteDescription) return;
+        this.pruneCandidates(peerId);
+        const ready = [];
+        for (const map of [this.candidateQueues, this.pendingCandidates]) {
+            const waiting = [];
+            for (const entry of map.get(peerId) || []) {
+                if (this.candidateMatches(connection, entry.candidate)) ready.push(entry);
+                else waiting.push(entry);
             }
-
-            this.pendingCandidates
-                .get(peerId)
-                .push(candidate);
-
-            return;
+            if (waiting.length) map.set(peerId, waiting);
+            else map.delete(peerId);
         }
-
-        /*
-         * Если remoteDescription ещё не установлен,
-         * откладываем candidate.
-         */
-
-        if (
-            !connection.remoteDescription
-        ) {
-
-            console.log(
-                "[RTC] queueing ICE: remote description not set",
-                peerId
-            );
-
-            if (
-                !this.candidateQueues.has(
-                    peerId
-                )
-            ) {
-
-                this.candidateQueues.set(
-                    peerId,
-                    []
-                );
-            }
-
-            this.candidateQueues
-                .get(peerId)
-                .push(candidate);
-
-            return;
-        }
-
-        try {
-
-            await connection.addIceCandidate(
-                new RTCIceCandidate(
-                    candidate
-                )
-            );
-
-            console.log(
-                "[RTC] ICE candidate added",
-                peerId
-            );
-
-        } catch (error) {
-
-            console.error(
-                "[RTC] addIceCandidate failed",
-                peerId,
-                error
-            );
-        }
-    },
-
-    /*
-     * =========================================================
-     * FLUSH ICE QUEUE
-     * =========================================================
-     */
-
-    async flushCandidateQueue(
-        peerId
-    ) {
-
-        const connection =
-            this.getConnection(
-                peerId
-            );
-
-        if (!connection) {
-            return;
-        }
-
-        if (
-            !connection.remoteDescription
-        ) {
-            return;
-        }
-
-        const queue =
-            this.candidateQueues.get(
-                peerId
-            );
-
-        if (
-            !queue ||
-            queue.length === 0
-        ) {
-
-            return;
-        }
-
-        console.log(
-            "[RTC] flushing ICE queue",
-            peerId,
-            queue.length
-        );
-
-        this.candidateQueues.delete(
-            peerId
-        );
-
-        for (
-            const candidate
-            of queue
-        ) {
-
+        for (const entry of ready) {
+            if (!this.isCurrent(peerId, connection, operation)) return;
             try {
-
-                await connection.addIceCandidate(
-                    new RTCIceCandidate(
-                        candidate
-                    )
-                );
-
-                console.log(
-                    "[RTC] queued ICE candidate added",
-                    peerId
-                );
-
+                await connection.addIceCandidate(new RTCIceCandidate(entry.candidate));
+                if (!this.isCurrent(peerId, connection, operation)) return;
             } catch (error) {
-
-                console.error(
-                    "[RTC] queued ICE candidate failed",
-                    peerId,
-                    error
-                );
+                console.warn("[RTC] queued ICE candidate failed", peerId, error);
             }
         }
     },
 
-    /*
-     * =========================================================
-     * HANDLE CANDIDATE
-     * =========================================================
-     */
-
-    async handleCandidate(
-        peerId,
-        candidate
-    ) {
-
-        console.log(
-            "[RTC] handling candidate",
-            peerId
-        );
-
-        await this.addIceCandidate(
-            peerId,
-            candidate
-        );
+    async handleCandidate(peerId, candidate) {
+        await this.addIceCandidate(peerId, candidate);
     },
-
-    /*
-     * =========================================================
-     * SEND MESSAGE
-     * =========================================================
-     */
 
     sendMessage(
         peerId,
