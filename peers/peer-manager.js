@@ -99,10 +99,40 @@ export const PeerManager = {
         return limits.length ? Math.min(...limits) : Infinity;
     },
 
+    observeTransport(record) {
+        const op = record.operation;
+        const pc = RTCManager.getConnection(record.peerId);
+        if (!op?.active || !pc || op.pc !== pc || this.connections.get(record.peerId) !== record) return;
+        const channel = RTCManager.getChannel(record.peerId, pc);
+        const state = pc.connectionState;
+        const failed = state === "failed" || state === "closed" ||
+            pc.iceConnectionState === "failed" || pc.signalingState === "closed";
+        const channelState = channel?.readyState;
+        // Timestamp the observation, never infer when a native transition happened.
+        const now = this.now();
+        const due = this.deadline(record);
+        if (now >= due || failed) return;
+        if (state !== "new") op.leftNew = true;
+        if (op.establishing && state === "connected" && op.connectedAt === null) op.connectedAt = now;
+        if (state === "connected" && channelState === "open") {
+            record.everOpen = true;
+            record.repair = null;
+            record.failures = 0;
+            record.retryAt = 0;
+            op.establishing = false;
+        } else if (!op.establishing && channelState !== "open" && !record.repair) {
+            record.repair = { startedAt: now, attempted: false };
+            console.log("[PeerManager] channel repair", record.peerId);
+        }
+        if (this.deadline(record) !== due) this.arm(record);
+    },
+
     isCurrent(record, op) {
-        return op.active && this.connections.get(record.peerId) === record &&
-            record.operation === op && ProfileManager.getProfile()?.id === record.localId &&
-            RTCManager.getConnection(record.peerId) === op.pc && this.now() < this.deadline(record);
+        if (!op.active || this.connections.get(record.peerId) !== record ||
+            record.operation !== op || ProfileManager.getProfile()?.id !== record.localId ||
+            RTCManager.getConnection(record.peerId) !== op.pc) return false;
+        this.observeTransport(record);
+        return this.now() < this.deadline(record);
     },
 
     arm(record) {
@@ -155,6 +185,7 @@ export const PeerManager = {
 
     reconcile(record) {
         if (this.connections.get(record.peerId) !== record) return;
+        this.observeTransport(record);
         if (record.operation && this.now() >= this.deadline(record)) {
             this.stop(record, "deadline");
             return;
@@ -168,20 +199,11 @@ export const PeerManager = {
                 return;
             }
             const channel = RTCManager.getChannel(record.peerId, pc);
-            if (pc.connectionState !== "new") op.leftNew = true;
             if (pc.connectionState === "connected" && channel?.readyState === "open") {
-                record.everOpen = true;
-                record.repair = null;
-                record.failures = 0;
-                record.retryAt = 0;
-                op.establishing = false;
                 this.arm(record);
                 return;
             }
             if (op.establishing) {
-                if (pc.connectionState === "connected" && op.connectedAt === null) {
-                    op.connectedAt = this.now();
-                }
                 if (this.signalingReady && this.presenceFresh &&
                     op.signalingSocket !== this.signalingSocket) {
                     this.stop(record, "signaling-session-changed");
@@ -192,11 +214,6 @@ export const PeerManager = {
             }
             // A transient disconnected with an open DC retains the existing policy.
             if (channel?.readyState === "open") { this.arm(record); return; }
-            if (!record.repair) {
-                record.repair = { startedAt: this.now(), attempted: false };
-                console.log("[PeerManager] channel repair", record.peerId);
-                this.arm(record);
-            }
             if (!RTCManager.canRepairChannel(pc)) {
                 this.stop(record, "sctp-not-repairable");
                 return;
@@ -286,6 +303,7 @@ export const PeerManager = {
             return Promise.resolve(false);
         }
         // Expire synchronously too: a throttled timer must not keep the slot busy.
+        this.observeTransport(record);
         if (record.operation && this.now() >= this.deadline(record)) this.stop(record, "incoming-deadline");
         const key = offer.sdp;
         const session = RTCManager.describeRemote(offer);
@@ -320,7 +338,7 @@ export const PeerManager = {
         this.arm(record);
         RTCManager.handleOffer(peerId, offer, op.pc, op).then(result => {
             if (record.incoming !== slot || record.operation !== op || !op.active) return;
-            if (!result || this.now() >= slot.deadline) { this.stop(record, "incoming-offer-failed"); return; }
+            if (!result || !this.isCurrent(record, op)) { this.stop(record, "incoming-offer-failed"); return; }
             record.lastOfferKey = key;
             record.incoming = null;
             slot.resolve(true);
