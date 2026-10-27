@@ -33,6 +33,7 @@ export class WSClient {
      */
 
     connect() {
+        if (window.wsClient && window.wsClient !== this) return;
 
         /*
          * Не создаём второе соединение,
@@ -66,6 +67,7 @@ export class WSClient {
 
         this.connected = false;
         this.socket = socket;
+        PeerManager.setSignalingState(this, false);
 
         /*
          * ==========================================
@@ -82,7 +84,7 @@ export class WSClient {
                  */
 
                 if (
-                    this.socket !== socket
+                    this.socket !== socket || window.wsClient !== this
                 ) {
                     return;
                 }
@@ -134,7 +136,7 @@ export class WSClient {
             (event) => {
 
                 // Ignore late events from a socket replaced during reconnect.
-                if (this.socket !== socket) {
+                if (this.socket !== socket || window.wsClient !== this) {
                     return;
                 }
 
@@ -156,7 +158,8 @@ export class WSClient {
                     );
 
                     this.handleMessage(
-                        data
+                        data,
+                        socket
                     );
 
                 } catch (err) {
@@ -185,12 +188,13 @@ export class WSClient {
                  */
 
                 if (
-                    this.socket !== socket
+                    this.socket !== socket || window.wsClient !== this
                 ) {
                     return;
                 }
 
                 this.connected = false;
+                PeerManager.setSignalingState(this, false);
 
                 console.warn(
                     "[WS] disconnected"
@@ -342,7 +346,8 @@ export class WSClient {
      * ==========================================
      */
 
-    handleMessage(data) {
+    handleMessage(data, socket = this.socket) {
+        if (socket !== this.socket || window.wsClient !== this) return;
 
         switch (
             data.type
@@ -353,16 +358,19 @@ export class WSClient {
                 if (data.peerId !== this.peerId) {
                     console.error("[WS] signaling-ready ID mismatch");
                     this.connected = false;
+                    PeerManager.setSignalingState(this, false);
                     return;
                 }
 
                 this.connected = true;
+                PeerManager.setSignalingState(this, true);
                 console.log("[WS] signaling ready", this.peerId);
                 break;
             }
 
             case "signaling-error":
                 this.connected = false;
+                PeerManager.setSignalingState(this, false);
                 console.error("[WS] signaling rejected join", data.code);
                 break;
 
@@ -417,7 +425,8 @@ export class WSClient {
                  */
 
                 PeerManager.updatePeers(
-                    this.peers
+                    this.peers,
+                    this
                 );
 
                 console.log(
@@ -441,7 +450,7 @@ export class WSClient {
                     data
                 );
 
-                RTCManager.handleOffer(
+                PeerManager.handleOffer(
                     data.from,
                     data.offer
                 );
