@@ -1,0 +1,151 @@
+{
+  "status": "Diagnostic controls published; no proven runtime fix",
+  "runtimeFixCreated": false,
+  "productionChanged": false,
+  "main": "9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0",
+  "WSStateModelPASS": 28,
+  "originalM1M55PASS": 55,
+  "boundaryPASS": 209,
+  "localhostRealWebSocketPASS": 3,
+  "browserSyntheticWSandPCPASS": 43,
+  "FAIL": 0,
+  "syntax": [
+    {
+      "site": "whisper-before13j-control-r1",
+      "jsFilesPASS": 19
+    },
+    {
+      "site": "whisper13j-ws-diagnostic-r1",
+      "jsFilesPASS": 19
+    }
+  ],
+  "anonymousHTTPS": "BLOCKED by mandatory proxy; fresh browser no cookies/Authorization/bypass",
+  "remoteRenderWebSocket": "NOT RUN; endpoint access blocked proxy403",
+  "realWebRTC": "NOT RUN",
+  "Android": "NOT RUN",
+  "historicalAdditional25": "Original sources unavailable; not rerun",
+  "sites": [
+    {
+      "key": "before",
+      "source": {
+        "project_id": "appgprj_6ae49ce2707c8191ac0185fdcfe13bb9",
+        "commit_sha": "e6b43218f5249fd8a50b37fd072750657481dd6f",
+        "archive": "/workspace/whisper-test-materials/ws-regression-r1/publications/before/deployment.tar",
+        "archive_sha256": "0dddf507c7d086e0b245025725f1c3424bae6b71156637b07db342a7f8cca738",
+        "members": 24,
+        "publicFiles": 23,
+        "remoteSourceVerified": true,
+        "credentialPersisted": false
+      },
+      "saved": {
+        "id": "appgprj_6ae49ce2707c8191ac0185fdcfe13bb9~appgver_7e7503c26da081918bccc40217fc856e",
+        "project_id": "appgprj_6ae49ce2707c8191ac0185fdcfe13bb9",
+        "version_number": 1,
+        "source": {
+          "commit_sha": "e6b43218f5249fd8a50b37fd072750657481dd6f"
+        },
+        "archive_storage": {
+          "archive_format": "tar",
+          "sediment_file_id": "file_00000000def88210add378d1a6afded1",
+          "content_hash": "sha256:0dddf507c7d086e0b245025725f1c3424bae6b71156637b07db342a7f8cca738",
+          "size_bytes": 143360,
+          "file_count": 24
+        },
+        "screenshot_url": null,
+        "deployment_id": null
+      },
+      "deployment": {
+        "id": "appgdep_6ae49e3a9b6c8191afd663cf40446726",
+        "project_id": "appgprj_6ae49ce2707c8191ac0185fdcfe13bb9",
+        "title": "Whisper до 1.3J · контроль",
+        "version_id": "appgprj_6ae49ce2707c8191ac0185fdcfe13bb9~appgver_7e7503c26da081918bccc40217fc856e",
+        "type": "publish",
+        "status": "succeeded",
+        "url": "https://whisper-before13j-control-r1.frostyskunk66.chatgpt.site",
+        "has_mcp": false,
+        "screenshot_asset_pointer": null,
+        "provider_deployment_id": "site---6ae49ce2707c8191ac0185fdcfe13bb9",
+        "failure_message": null,
+        "env_set_revision": 0,
+        "updated_at": "2026-10-30T13:40:23.076971+00:00"
+      },
+      "access": {
+        "access_mode": "public",
+        "role": "owner"
+      },
+      "verification": {
+        "anonymousHTTP": "BLOCKED: fresh Chromium via mandatory proxy, ERR_TUNNEL_CONNECTION_FAILED; zero initial cookies, no Authorization/bypass token",
+        "Android": "NOT RUN",
+        "remoteRenderWS": "BLOCKED: CONNECT tunnel failed, response 403",
+        "realWebRTC": "NOT RUN"
+      },
+      "runtimeFixCreated": false,
+      "clientZIP": {
+        "file": "whisper-before13j-control-r1.zip",
+        "bytes": 28872,
+        "sha256": "dac976e8319bbee6ab7f79d07b977b2c0c9e33bb905ca412c7825b5700b7e743"
+      }
+    },
+    {
+      "key": "accepted",
+      "source": {
+        "project_id": "appgprj_6ae49cf0d738819193bc9feaed208a51",
+        "commit_sha": "59f4de500c3022334f7f2c2a13d838a33a96a9db",
+        "archive": "/workspace/whisper-test-materials/ws-regression-r1/publications/accepted/deployment.tar",
+        "archive_sha256": "55786d254f940c870ad40164dd0ba9d45334a8f647b53f78d254d8eab20eecb4",
+        "members": 24,
+        "publicFiles": 23,
+        "remoteSourceVerified": true,
+        "credentialPersisted": false
+      },
+      "saved": {
+        "id": "appgprj_6ae49cf0d738819193bc9feaed208a51~appgver_8ed46a727c9c819197a6d5d23e92b830",
+        "project_id": "appgprj_6ae49cf0d738819193bc9feaed208a51",
+        "version_number": 1,
+        "source": {
+          "commit_sha": "59f4de500c3022334f7f2c2a13d838a33a96a9db"
+        },
+        "archive_storage": {
+          "archive_format": "tar",
+          "sediment_file_id": "file_00000000027081f49e2dc663368ea503",
+          "content_hash": "sha256:55786d254f940c870ad40164dd0ba9d45334a8f647b53f78d254d8eab20eecb4",
+          "size_bytes": 153600,
+          "file_count": 24
+        },
+        "screenshot_url": null,
+        "deployment_id": null
+      },
+      "deployment": {
+        "id": "appgdep_6ae49e51bf1081918f71f879cb553024",
+        "project_id": "appgprj_6ae49cf0d738819193bc9feaed208a51",
+        "title": "Whisper 1.3J-1 · диагностика WS",
+        "version_id": "appgprj_6ae49cf0d738819193bc9feaed208a51~appgver_8ed46a727c9c819197a6d5d23e92b830",
+        "type": "publish",
+        "status": "succeeded",
+        "url": "https://whisper13j-ws-diagnostic-r1.frostyskunk66.chatgpt.site",
+        "has_mcp": false,
+        "screenshot_asset_pointer": null,
+        "provider_deployment_id": "site---6ae49cf0d738819193bc9feaed208a51",
+        "failure_message": null,
+        "env_set_revision": 0,
+        "updated_at": "2026-10-30T13:40:48.630046+00:00"
+      },
+      "access": {
+        "access_mode": "public",
+        "role": "owner"
+      },
+      "verification": {
+        "anonymousHTTP": "BLOCKED: fresh Chromium via mandatory proxy, ERR_TUNNEL_CONNECTION_FAILED; zero initial cookies, no Authorization/bypass token",
+        "Android": "NOT RUN",
+        "remoteRenderWS": "BLOCKED: CONNECT tunnel failed, response 403",
+        "realWebRTC": "NOT RUN"
+      },
+      "runtimeFixCreated": false,
+      "clientZIP": {
+        "file": "whisper13j-ws-diagnostic-r1.zip",
+        "bytes": 32207,
+        "sha256": "3e586b90d09b5af64e5f7c8689b96d7aa74588d2492a356168c3331d954e005d"
+      }
+    }
+  ]
+}

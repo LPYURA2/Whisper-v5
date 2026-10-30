@@ -1,0 +1,146 @@
+{
+  "build": {
+    "title": "Whisper до 1.3J — контроль",
+    "id": "before13j-control-r1",
+    "sourceCommit": "6ca7510fb9134198c3244e47d08a698d9d27eb57",
+    "runtimeCommit": "6ca7510fb9134198c3244e47d08a698d9d27eb57"
+  },
+  "observerSHA256": "24cc19968d5d0e34f140eddadfcfda84285857969dd32723051a0d03c02ccb04",
+  "runtimeFixCreated": false,
+  "unchangedRuntimeFiles": 19,
+  "displayOnlyModified": "index.html",
+  "files": [
+    {
+      "file": "chats/chat-manager.js",
+      "bytes": 893,
+      "sha256": "cd524e6967e0476b29a61133c747cd56b82ab42cff33dff8b4aa67b6eea29b97",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "contacts/contact-manager.js",
+      "bytes": 1086,
+      "sha256": "39081ca301069e07829c2a353f21fd2b877bcd853aff52ea38ba0364bddc83ce",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "core/app.js",
+      "bytes": 2463,
+      "sha256": "c3534f81176e6f4cd3d66e88956172f30cc83778070dd9046dca6a32cc747dbe",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "core/log-manager.js",
+      "bytes": 3881,
+      "sha256": "53ab58b03a91cf6ebe4fed70a4f715ee0d05571e0a1b9744df6a831c25a27677",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "core/start-messenger.js",
+      "bytes": 875,
+      "sha256": "3fae12f16932c83db7f07e60b7e7ea3efe3f4ec1b2275f0b35756487c23e7dbe",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "core/sw-register.js",
+      "bytes": 308,
+      "sha256": "b86d93a46b223082517a89410241120aae33034401fc538b96a660d3f45a52b8",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "core/welcome.js",
+      "bytes": 1741,
+      "sha256": "0f6e1cf2ca833d05fef275332575899617fdbebdf057768f395dee4d2333c1da",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "crypto/key-manager.js",
+      "bytes": 985,
+      "sha256": "fd000a5f0464c3492b9f2390fa86bf0cc503297903f64fe31d1137de222e69fe",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "index.html",
+      "bytes": 473,
+      "sha256": "40e8799674434fe1c98b7481de0fde439c074787709a2552bac878115e84e354",
+      "runtimeByteIdentical": false
+    },
+    {
+      "file": "manifest.json",
+      "bytes": 159,
+      "sha256": "04457a966b5463498b68a0a9c1602c6120256d66119734c916df20d022a9735f",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "network/rtc-manager.js",
+      "bytes": 31603,
+      "sha256": "dec9734a8bfefb23de71c38676509483586c5e4ce01553d92000213e75377fbe",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "network/signaling.js",
+      "bytes": 328,
+      "sha256": "49b881ddcb6c13c8e3d42da7e5534497c305466f2123768e90f3a58857e8cb15",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "network/ws-client.js",
+      "bytes": 13388,
+      "sha256": "642ef64a9c5c44effa9d13aaef80c63aeaa8ed562c5a50aa47ebf70fe5e3b478",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "peers/peer-manager.js",
+      "bytes": 10257,
+      "sha256": "a5d1652f6616a225de6ec56e7444724f528990c200abf30a3b5109c3aa54ede1",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "profile/profile-manager.js",
+      "bytes": 1802,
+      "sha256": "6e4c8fae8304bfa54650e3a8edab1c32646858ebeb3049bb58e1153c8a7a2381",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "storage/storage.js",
+      "bytes": 1651,
+      "sha256": "9354def9fe87b5b9b21d8b6bc745b3f1ff38b765681e3150dd1206f84db9d21a",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "styles/main.css",
+      "bytes": 1166,
+      "sha256": "d0f61bdeba4b20f607d9cc9a682bae97aa5fa4c831b76a009eed9e9ae0eb3fac",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "sw.js",
+      "bytes": 158,
+      "sha256": "ef4c2ae3e228a633b34e6dfc1bfea6659bfac52f4587cfd8fa68a93603a3b2e8",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "ui/layout.js",
+      "bytes": 165,
+      "sha256": "b7ee82b1e522408613b40bdcdd33af19086975196894c6b5b26c96d6b1f03c6f",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "ui/ui.js",
+      "bytes": 15457,
+      "sha256": "737db0e0d2561a0454e360a422ed5a990cd5ae9ca0bdaae3704a8f29c6ae64ec",
+      "runtimeByteIdentical": true
+    },
+    {
+      "file": "diagnostics/build-info.js",
+      "bytes": 257,
+      "sha256": "7672ec84fc615de7ce03b1e9d27de9186d6ea7b007982fc358ac54178f6c4c7a",
+      "diagnosticOnly": true
+    },
+    {
+      "file": "diagnostics/network-observer.js",
+      "bytes": 25542,
+      "sha256": "24cc19968d5d0e34f140eddadfcfda84285857969dd32723051a0d03c02ccb04",
+      "diagnosticOnly": true
+    }
+  ]
+}
