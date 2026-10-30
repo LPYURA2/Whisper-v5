@@ -1,0 +1,9 @@
+The bundle contains these 5 refs:
+9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0 refs/heads/backup/pre-expressturn-20261030-9657faaa
+9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0 refs/heads/main
+bd1b216c70c9070e7949c13abdc27eeeb3cc3e8c refs/heads/test/stage-1.3j
+bd1b216c70c9070e7949c13abdc27eeeb3cc3e8c refs/pull/1/head
+9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0 HEAD
+The bundle records a complete history.
+The bundle uses this hash algorithm: sha1
+/workspace/whisper-backups/2026-10-30-pre-expressturn-9657faaa/HISTORY.bundle is okay

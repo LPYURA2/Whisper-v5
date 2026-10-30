@@ -1,0 +1,11 @@
+2026-10-27T16:03:55.6450952Z   artifact_name: github-pages
+2026-10-27T16:03:56.0817910Z Fetching artifact metadata for "github-pages" in this workflow run
+2026-10-27T16:03:56.2869353Z Found 1 artifact(s)
+2026-10-27T16:03:56.2883941Z Creating Pages deployment with payload:
+2026-10-27T16:03:56.2886881Z 	"artifact_id": 12748289060,
+2026-10-27T16:03:56.2888745Z 	"pages_build_version": "9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0",
+2026-10-27T16:03:57.3022099Z Created deployment for 9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0, ID: 9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0
+2026-10-27T16:04:03.4693156Z Current status: deployment_queued
+2026-10-27T16:04:10.5738799Z Current status: deployment_queued
+2026-10-27T16:04:22.7684040Z Reported success!
+2026-10-27T16:04:22.8025033Z Evaluated environment url: https://lpyura2.github.io/Whisper-v5/

@@ -1,0 +1,319 @@
+{
+  "checkedAt": "2026-10-30T11:30:18.848Z",
+  "repository": "LPYURA2/Whisper-v5",
+  "productionURL": "https://lpyura2.github.io/Whisper-v5/",
+  "expectedSourceCommit": "9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0",
+  "expectedSourceTree": "280e55d3cea2e316513908ceb438ed565db18411",
+  "runs": {
+    "total_count": 188,
+    "runs": [
+      {
+        "id": 40537117936,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/40537117936",
+        "created_at": "2026-10-27T16:03:24Z",
+        "updated_at": "2026-10-27T16:04:25Z",
+        "tree_id": "280e55d3cea2e316513908ceb438ed565db18411"
+      },
+      {
+        "id": 38573496856,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "6ca7510fb9134198c3244e47d08a698d9d27eb57",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38573496856",
+        "created_at": "2026-10-14T13:38:36Z",
+        "updated_at": "2026-10-14T13:39:15Z",
+        "tree_id": "a1985123c5c75d3d492998084f85a0d6e89dce39"
+      },
+      {
+        "id": 38565171828,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "769d38b5aed25c067ffcdf0c74d020d8656a68bc",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38565171828",
+        "created_at": "2026-10-14T12:37:03Z",
+        "updated_at": "2026-10-14T12:37:46Z",
+        "tree_id": "e11b1ebc13b06237b7cdbef73985cf8d6b713dce"
+      },
+      {
+        "id": 38563410591,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "e99b631898dcbe69c1eb4ca63e6a57203785e03a",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38563410591",
+        "created_at": "2026-10-14T12:23:19Z",
+        "updated_at": "2026-10-14T12:24:01Z",
+        "tree_id": "e11b1ebc13b06237b7cdbef73985cf8d6b713dce"
+      },
+      {
+        "id": 38562352762,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "09d8036373aa70e344aff451b49fd83d0f822425",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38562352762",
+        "created_at": "2026-10-14T12:14:39Z",
+        "updated_at": "2026-10-14T12:16:05Z",
+        "tree_id": "5950f6614d676475e9eb69f04eccf7b102a67038"
+      },
+      {
+        "id": 38416989959,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "af3fd6d43fb53942b7e3b56943485e184fce6ce6",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38416989959",
+        "created_at": "2026-10-13T14:51:33Z",
+        "updated_at": "2026-10-13T14:52:20Z",
+        "tree_id": "e11b1ebc13b06237b7cdbef73985cf8d6b713dce"
+      },
+      {
+        "id": 38307477190,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "4f8119cd3beec8bbd052ff333c1999a50d0b7f21",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38307477190",
+        "created_at": "2026-10-12T20:56:42Z",
+        "updated_at": "2026-10-12T20:57:21Z",
+        "tree_id": "8249ca751daa28ccf3d71dce479fc8b8a4045579"
+      },
+      {
+        "id": 38306853364,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "12a5ce2cd6b86922ba065640b93f2532b8212bdb",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/38306853364",
+        "created_at": "2026-10-12T20:50:53Z",
+        "updated_at": "2026-10-12T20:51:39Z",
+        "tree_id": "8249ca751daa28ccf3d71dce479fc8b8a4045579"
+      },
+      {
+        "id": 31884763536,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "0d03a6edd50a796a84e4ca726a2f4354a3d36bdf",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/31884763536",
+        "created_at": "2026-08-15T12:30:13Z",
+        "updated_at": "2026-08-15T12:30:51Z",
+        "tree_id": "ec9171495b9dfc6e8683bab121baa96cfafc04c2"
+      },
+      {
+        "id": 31835595303,
+        "name": "pages build and deployment",
+        "head_branch": "main",
+        "head_sha": "c893a67e8e3d3b1af87e63d9627d63472b11f14a",
+        "path": "dynamic/pages/pages-build-deployment",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/31835595303",
+        "created_at": "2026-08-14T19:57:02Z",
+        "updated_at": "2026-08-14T19:57:39Z",
+        "tree_id": "037a0af4b43f85fa9bca0b7923e79c856db542f8"
+      }
+    ]
+  },
+  "jobs": {
+    "jobs": [
+      {
+        "id": 122305263083,
+        "name": "build",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-27T16:03:29Z",
+        "completed_at": "2026-10-27T16:03:48Z",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/40537117936/job/122305263083",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-27T16:03:29Z",
+            "completed_at": "2026-10-27T16:03:31Z"
+          },
+          {
+            "name": "Pull ghcr.io/actions/jekyll-build-pages:v1.0.13",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-27T16:03:31Z",
+            "completed_at": "2026-10-27T16:03:42Z"
+          },
+          {
+            "name": "Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-27T16:03:42Z",
+            "completed_at": "2026-10-27T16:03:43Z"
+          },
+          {
+            "name": "Build with Jekyll",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-10-27T16:03:43Z",
+            "completed_at": "2026-10-27T16:03:46Z"
+          },
+          {
+            "name": "Upload artifact",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-10-27T16:03:46Z",
+            "completed_at": "2026-10-27T16:03:46Z"
+          },
+          {
+            "name": "Post Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10,
+            "started_at": "2026-10-27T16:03:46Z",
+            "completed_at": "2026-10-27T16:03:47Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11,
+            "started_at": "2026-10-27T16:03:47Z",
+            "completed_at": "2026-10-27T16:03:47Z"
+          }
+        ]
+      },
+      {
+        "id": 122305483064,
+        "name": "deploy",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-27T16:03:53Z",
+        "completed_at": "2026-10-27T16:04:24Z",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/40537117936/job/122305483064",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-27T16:03:54Z",
+            "completed_at": "2026-10-27T16:03:55Z"
+          },
+          {
+            "name": "Deploy to GitHub Pages",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-27T16:03:55Z",
+            "completed_at": "2026-10-27T16:04:22Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-27T16:04:22Z",
+            "completed_at": "2026-10-27T16:04:22Z"
+          }
+        ]
+      },
+      {
+        "id": 122305483187,
+        "name": "report-build-status",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-10-27T16:03:51Z",
+        "completed_at": "2026-10-27T16:03:56Z",
+        "html_url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/40537117936/job/122305483187",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-10-27T16:03:52Z",
+            "completed_at": "2026-10-27T16:03:52Z"
+          },
+          {
+            "name": "Report Build Status",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-10-27T16:03:53Z",
+            "completed_at": "2026-10-27T16:03:53Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-10-27T16:03:53Z",
+            "completed_at": "2026-10-27T16:03:53Z"
+          }
+        ]
+      }
+    ]
+  },
+  "artifactListing": {
+    "total_count": 0,
+    "artifacts": []
+  },
+  "artifactMetadataFromBuildLog": {
+    "id": 12748289060,
+    "name": "github-pages",
+    "bytes": 31559,
+    "sha256": "3ddf42c6984670b0fd9edb2887717db3379f9ddf915e1c5252d8bcd4d7f6825b",
+    "url": "https://github.com/LPYURA2/Whisper-v5/actions/runs/40537117936/artifacts/12748289060"
+  },
+  "artifactDownload": {
+    "status": "BLOCKED",
+    "httpStatus": 404,
+    "message": "GitHub API error 404: Not Found. Cannot determine whether expired/deleted/otherwise unavailable; not recovered."
+  },
+  "liveHTTPS": {
+    "status": "BLOCKED",
+    "curlExitCode": 56,
+    "error": "CONNECT tunnel failed, response 403",
+    "layer": "executor HTTP proxy before destination response",
+    "nativeWeb": "URL not accessible via this tool (root and network/rtc-manager.js)"
+  },
+  "pagesSettingsAPI": {
+    "status": "BLOCKED",
+    "connector": "/pages and /pages/builds/latest not allowed by connector URL whitelist",
+    "ghCLI": "Get https://api.github.com/repos/LPYURA2/Whisper-v5/pages: Forbidden",
+    "meaning": "No inference of GitHub repository permission or page outage"
+  },
+  "conclusion": {
+    "publicationMetadata": "PASS: newest workflow run and deployment log prove successful Pages deployment of9657faaa on27Oct2026 with site URL; no newer run in latest20 list",
+    "mainMatchesDeploymentCommit": true,
+    "liveByteComparison": "BLOCKED: current served page/modules were not retrievable",
+    "archiveSourceMeaning": "Fresh Git source archive from9657faaa can preserve the confirmed published source; it must not be labelled recovered deployment artifact or live byte-for-byte copy without this limitation.",
+    "noMutation": true
+  }
+}

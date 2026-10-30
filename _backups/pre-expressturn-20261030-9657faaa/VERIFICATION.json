@@ -1,0 +1,32 @@
+{
+  "sourceCommit": "9657faaaa59c31d3b3c2c489fc9a20a61e6fe5b0",
+  "sourceTree": "280e55d3cea2e316513908ceb438ed565db18411",
+  "clientFilesRestored": 20,
+  "zipIntegrity": "PASS",
+  "zipRestoreAllBytes": "PASS",
+  "bundleVerify": "PASS",
+  "bundleCloneRestore": "PASS",
+  "livePagesBytes": "BLOCKED: proxy403; deployment artifact404",
+  "files": {
+    "CLIENT-SOURCE.zip": {
+      "bytes": 31205,
+      "sha256": "ecc7b76dda8a3505ebefc7dff75dc8ea51e1e129cfd6ace865fff91c96a48b67"
+    },
+    "HISTORY.bundle": {
+      "bytes": 228621,
+      "sha256": "f071756eef164622eac75935e835e9e53589c2999292ec37dce67f86768e2a3e"
+    },
+    "MANIFEST.json": {
+      "bytes": 5074,
+      "sha256": "4ce31f42c5de486d813193142995295c049dcb736de9523091962bad42f80502"
+    },
+    "ROLLBACK.md": {
+      "bytes": 2982,
+      "sha256": "b6e86acbbb8072edab7e1d942b0b941c8c9f02483eb4012c6f55ab3f73dd63ba"
+    },
+    "publication-evidence.json": {
+      "bytes": 12059,
+      "sha256": "388dc6e2f9b356afc4d0003962955c41835d670a7da8b934fb0fe27c2b501d98"
+    }
+  }
+}
