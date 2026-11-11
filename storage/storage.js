@@ -1,3 +1,6 @@
+// Test-only namespace; never read or migrate production keys.
+const STORAGE_NAMESPACE = "whisper-test:turn-signaling-r1:";
+
 export const Storage = {
 
     async init() {
@@ -16,7 +19,7 @@ export const Storage = {
     async saveProfile(profile) {
 
         localStorage.setItem(
-            "profile",
+            STORAGE_NAMESPACE + "profile",
             JSON.stringify(profile)
         );
     },
@@ -25,7 +28,7 @@ export const Storage = {
 
         const raw =
             localStorage.getItem(
-                "profile"
+                STORAGE_NAMESPACE + "profile"
             );
 
         if (!raw) {
@@ -38,7 +41,7 @@ export const Storage = {
     async deleteProfile() {
 
         localStorage.removeItem(
-            "profile"
+            STORAGE_NAMESPACE + "profile"
         );
     },
 
@@ -51,7 +54,7 @@ export const Storage = {
     async saveContacts(contacts) {
 
         localStorage.setItem(
-            "contacts",
+            STORAGE_NAMESPACE + "contacts",
             JSON.stringify(contacts)
         );
     },
@@ -60,7 +63,7 @@ export const Storage = {
 
         const raw =
             localStorage.getItem(
-                "contacts"
+                STORAGE_NAMESPACE + "contacts"
             );
 
         if (!raw) {
@@ -73,14 +76,14 @@ export const Storage = {
     async deleteContacts() {
 
         localStorage.removeItem(
-            "contacts"
+            STORAGE_NAMESPACE + "contacts"
         );
     },
 
     async saveChats(chats) {
 
     localStorage.setItem(
-        "chats",
+        STORAGE_NAMESPACE + "chats",
         JSON.stringify(chats)
     );
 },
@@ -89,7 +92,7 @@ async loadChats() {
 
     const raw =
         localStorage.getItem(
-            "chats"
+            STORAGE_NAMESPACE + "chats"
         );
 
     if (!raw) {
@@ -102,7 +105,7 @@ async loadChats() {
 async deleteChats() {
 
     localStorage.removeItem(
-        "chats"
+        STORAGE_NAMESPACE + "chats"
     );
 },
 

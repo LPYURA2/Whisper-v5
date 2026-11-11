@@ -3,6 +3,8 @@ console.log("[RTC] NEW VERSION LOADED");
 
 import { UI } from "../ui/ui.js";
 import { ProfileManager } from "../profile/profile-manager.js";
+import { TurnPocConfig } from "./turn-poc-config.js";
+import { TurnPocDiagnostics } from "./turn-poc-diagnostics.js";
 
 export const RTCManager = {
 
@@ -48,6 +50,8 @@ export const RTCManager = {
     notifyPeer(peerId, connection, type, channel = null) {
         const operation = this.operationOwners.get(connection);
         if (this.connections.get(peerId) !== connection || (operation && !operation.active)) return;
+        // Passive test snapshot before the controller can close the PC.
+        try { TurnPocDiagnostics.note(peerId, connection, type); } catch { /* Diagnostics cannot control recovery. */ }
         console.log("[RTC] lifecycle", peerId, "pc-op", operation?.label, "dc", this.channelLabels.get(channel), type);
         this.onPeerEvent?.({ peerId, connection, channel, type });
     },
@@ -225,17 +229,7 @@ export const RTCManager = {
          */
 
         const connection =
-            new RTCPeerConnection({
-
-                iceServers: [
-
-                    {
-                        urls:
-                            "stun:stun.l.google.com:19302"
-                    }
-
-                ]
-            });
+            new RTCPeerConnection(TurnPocConfig.getRTCConfiguration());
 
         this.connections.set(
             peerId,
@@ -290,6 +284,7 @@ export const RTCManager = {
         connection.onicegatheringstatechange =
             () => {
                 if (!this.isCurrent(peerId, connection)) return;
+                try { TurnPocDiagnostics.note(peerId, connection, "gathering"); } catch { /* Passive only. */ }
                 console.log(
                     "[RTC] iceGatheringState",
                     peerId,
@@ -363,6 +358,13 @@ export const RTCManager = {
                 }
             };
 
+        connection.onicecandidateerror = event => {
+            if (this.connections.get(peerId) !== connection) return;
+            // Never export native text/URL: only the numeric diagnostic code.
+            try { TurnPocDiagnostics.note(peerId, connection, "ice-error", { errorCode: event.errorCode }); }
+            catch { /* Passive only. */ }
+        };
+
         /*
          * =====================================================
          * ICE CANDIDATE
@@ -371,6 +373,12 @@ export const RTCManager = {
 
         connection.onicecandidate =
             (event) => {
+                // Observe only the native candidate type, before lifecycle checks
+                // can retire this attempt. Never export its address or credentials.
+                if (event.candidate) {
+                    try { TurnPocDiagnostics.note(peerId, connection, "ice-candidate", { candidateType: event.candidate.type }); }
+                    catch { /* Passive only. */ }
+                }
                 const owner = this.operationOwners.get(connection);
                 if (!this.isCurrent(peerId, connection, owner)) return;
                 // A live PC may emit fresh ICE after WS reconnect; only unfinished SDP is socket-bound.
@@ -740,6 +748,7 @@ export const RTCManager = {
             return false;
         }
 
+        try { TurnPocDiagnostics.note(peerId, connection, "reset:" + reason); } catch { /* Passive only. */ }
         console.warn(
             "[RTC] resetting peer connection",
             peerId,
@@ -800,6 +809,7 @@ export const RTCManager = {
         connection.oniceconnectionstatechange = null;
         connection.onsignalingstatechange = null;
         connection.onicegatheringstatechange = null;
+        connection.onicecandidateerror = null;
 
         try {
 

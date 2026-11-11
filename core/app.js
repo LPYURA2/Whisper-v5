@@ -1,4 +1,5 @@
 import { LogManager } from './log-manager.js';
+import { TurnPocConfig } from '../network/turn-poc-config.js';
 
 import { UI } from '../ui/ui.js';
 import { UILayout } from '../ui/layout.js';
@@ -36,6 +37,8 @@ async function bootstrap() {
      * автоматически попадают также в LogManager.
      */
 
+    // Protect profile keys and SDP before the first startup/profile log as well.
+    LogManager.sanitizeArgs = args => TurnPocConfig.sanitizeLogArgs(args);
     LogManager.init();
 
 

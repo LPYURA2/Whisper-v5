@@ -1,0 +1,24 @@
+{
+  "purpose": "Diagnostic inventory only. Presence in this file does not activate an endpoint or prove relay.",
+  "checkedDocumentationAt": "2026-11-11",
+  "normalPolicy": "all; original Google STUN. No unverified TURN candidate is promoted automatically.",
+  "candidateAcceptance": "Two Android, selected active relay pair with both candidate types, PC connected, ICE connected/completed, DC open, bidirectional received messages; run each transport separately.",
+  "candidates": [
+    {"id":"google-original","kind":"stun","uri":"stun:stun.l.google.com:19302","defaultActive":true,"auth":"none","status":"original Whisper configuration retained"},
+    {"id":"google-1","kind":"stun","uri":"stun:stun1.l.google.com:19302","defaultActive":false,"auth":"none","status":"inventory from owner-provided historical list; current gathering NOT RUN"},
+    {"id":"google-2","kind":"stun","uri":"stun:stun2.l.google.com:19302","defaultActive":false,"auth":"none","status":"inventory from owner-provided historical list; current gathering NOT RUN"},
+    {"id":"google-3","kind":"stun","uri":"stun:stun3.l.google.com:19302","defaultActive":false,"auth":"none","status":"inventory from owner-provided historical list; current gathering NOT RUN"},
+    {"id":"google-4","kind":"stun","uri":"stun:stun4.l.google.com:19302","defaultActive":false,"auth":"none","status":"inventory from owner-provided historical list; current gathering NOT RUN"},
+    {"id":"express-udp","kind":"turn","uri":"turn:free.expressturn.com:3478?transport=udp","defaultActive":false,"diagnosticSelection":"turn=express-udp","auth":"owner-issued username/credential, private fragment, RAM only; no HMAC or invented TTL","status":"prepared provider; separate current UDP relay acceptance NOT RUN"},
+    {"id":"express-tcp","kind":"turn","uri":"turn:free.expressturn.com:3478?transport=tcp","defaultActive":false,"diagnosticSelection":"turn=express-tcp","auth":"owner-issued username/credential, private fragment, RAM only; no HMAC or invented TTL","status":"prepared provider; separate current TCP relay acceptance NOT RUN"},
+    {"id":"openrelay-legacy-udp80","kind":"turn","uri":"turn:openrelay.metered.ca:80","defaultActive":false,"auth":"current authorized configuration not obtained; archival credentials excluded","status":"BLOCKED pending provider-authorized auth; Allocate NOT RUN"},
+    {"id":"openrelay-legacy-udp443","kind":"turn","uri":"turn:openrelay.metered.ca:443","defaultActive":false,"auth":"current authorized configuration not obtained; archival credentials excluded","status":"BLOCKED pending provider-authorized auth; Allocate NOT RUN"},
+    {"id":"openrelay-legacy-tcp443","kind":"turn","uri":"turn:openrelay.metered.ca:443?transport=tcp","defaultActive":false,"auth":"current authorized configuration not obtained; archival credentials excluded","status":"BLOCKED pending provider-authorized auth; Allocate NOT RUN"},
+    {"id":"openrelay-static-udp80","kind":"turn","uri":"turn:staticauth.openrelay.metered.ca:80?transport=udp","defaultActive":false,"auth":"official static-auth mechanism documented; server-side temporary username/HMAC credential generation requires a separately reviewed issuer; shared secret is not a TURN password","status":"documented candidate only; no issuer deployed; Allocate NOT RUN"},
+    {"id":"express-legacy-udp3478","kind":"turn","uri":"turn:relay1.expressturn.com:3478","defaultActive":false,"auth":"separate valid owner credentials/endpoints require confirmation; no archival pair copied","status":"excluded from active configuration"},
+    {"id":"express-legacy-tcp3478","kind":"turn","uri":"turn:relay1.expressturn.com:3478?transport=tcp","defaultActive":false,"auth":"separate valid owner credentials/endpoints require confirmation; no archival pair copied","status":"excluded from active configuration"}
+  ],
+  "tls": "No unconfirmed TURNS hostname/port invented. Add a pinned TLS candidate only after official provider/account confirmation.",
+  "sources": ["https://www.metered.ca/tools/openrelay/", "https://www.expressturn.com/", "owner-provided FireChat/Whisper endpoint lists"],
+  "limits": "Provider documentation is not an SLA or proof of current reachability. No paid resources enabled and no API key/shared secret stored here."
+}

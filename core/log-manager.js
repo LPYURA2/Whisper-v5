@@ -10,6 +10,17 @@ export const LogManager = {
 
     initialized: false,
 
+    // Installed only by this isolated TURN PoC before credentials are entered.
+    sanitizeArgs: null,
+
+    safeArgs(args) {
+        try {
+            return this.sanitizeArgs ? this.sanitizeArgs(args) : args;
+        } catch {
+            return ["[TURN PoC] log suppressed by redaction guard"];
+        }
+    },
+
     init() {
 
         if (this.initialized) {
@@ -34,6 +45,8 @@ export const LogManager = {
 
         console.log = function (...args) {
 
+            args = manager.safeArgs(args);
+
             manager.originalConsole.log(
                 ...args
             );
@@ -46,6 +59,8 @@ export const LogManager = {
 
         console.warn = function (...args) {
 
+            args = manager.safeArgs(args);
+
             manager.originalConsole.warn(
                 ...args
             );
@@ -57,6 +72,8 @@ export const LogManager = {
         };
 
         console.error = function (...args) {
+
+            args = manager.safeArgs(args);
 
             manager.originalConsole.error(
                 ...args
@@ -78,6 +95,7 @@ export const LogManager = {
         args
     ) {
 
+        args = this.safeArgs(args);
         const entry = {
 
             time:
@@ -145,10 +163,9 @@ export const LogManager = {
                     this.originalConsole
                 ) {
 
-                    this.originalConsole.error(
-                        "[LogManager] listener error",
-                        error
-                    );
+                    this.originalConsole.error(...this.safeArgs([
+                        "[LogManager] listener error", error
+                    ]));
                 }
             }
         }
@@ -198,10 +215,9 @@ export const LogManager = {
                     this.originalConsole
                 ) {
 
-                    this.originalConsole.error(
-                        "[LogManager] clear listener error",
-                        error
-                    );
+                    this.originalConsole.error(...this.safeArgs([
+                        "[LogManager] clear listener error", error
+                    ]));
                 }
             }
         }

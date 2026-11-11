@@ -1,6 +1,6 @@
 {
-  "name": "Whisper",
-  "short_name": "Whisper",
+  "name": "Whisper · TURN, сигналинг",
+  "short_name": "TURN, сигналинг",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#111827",
